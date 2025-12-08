@@ -1,0 +1,5 @@
+This is the Python code used to generate the results described in the article "Corticofugal gated recurrency captures auditory cortical responses".
+
+The data is first converted to a format suitable for processing in Python in each _prebuild.py_ script in the respective dataset folder ('NS3' and 'NS3_PEG' correspond to 'NAT4-A1' and 'NAT4-PEG' in the paper). Pre-processing steps as detailed in the paper are contained in the _build_datasets.py_ file. The main script is _pipeline.py_, used for the initial model fit. The _test_pipeline_norefit.py_ script is for model testing. The further analyses detailed in the paper are contained in the _final_analysis.py_ and _memory_retention.py_ scripts. The _Temporal_prediction_ folder contains scripts for the temporal prediction task analysis.
+
+Some functions, relating to pre-processing and performance calculation, were adapted from [benlib-py](https://github.com/ben-willmore/benlib-py). The performance of models on the sequential MNIST task was evaluated using [miltonllera](https://github.com/miltonllera/pytorch-subLSTM)'s implementation.
