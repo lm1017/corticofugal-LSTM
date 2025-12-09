@@ -6,4 +6,4 @@ Some functions, relating to pre-processing and performance calculation, were ada
 
 ***
 
-The data can be found here: [NS3 and NS3_PEG](https://zenodo.org/records/7796574); [NS2](https://zenodo.org/records/3445557)
+The data can be found here: [NS3 and NS3_PEG](https://zenodo.org/records/7796574); [NS2](https://zenodo.org/records/3445557). To run the scripts, download the data in its original format to the corresponding subfolders within the _Data_ folder. In the main training script, choose the dataset and model, as well as the model hyperparameters. Make sure that model fitting results (performance, model parameters, and meta-info) are being saved. For testing, choose the saved result file of the fitted model being tested.
