@@ -13,6 +13,8 @@ from plot_funcs import fake_parula
 import random
 import torch
 from torch.autograd import grad
+import pickle
+from statsmodels.othermod.betareg import BetaModel
 
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -1508,7 +1510,8 @@ def compute_gradients(calc_mode, stim_data, resp_data, stimuli_to_use, models_fi
                     # t_gate shape might be (seq_len, batch, input_size) or (seq_len, batch, 1) depending on implementation
                     print("t_gate shape:", t_gate.shape)
                     print("t_gate (per-timestep mean):", [t_gate[t].abs().mean().item() for t in range(t_gate.shape[0])])
-                    print("t_gate (per-timestep min,max):", [(t_gate[t].min().item(), t_gate[t].max().item()) for t in range(t_gate.shape[0])])
+                    print("t_gate (per-timestep min,max):", [(t_gate[t].min().item(), 
+                                                              t_gate[t].max().item()) for t in range(t_gate.shape[0])])
                     import pdb
                     pdb.set_trace()
                     
@@ -2473,6 +2476,39 @@ def count_params(models_fits_dict):
         
     return num_params
 
+
+def count_rcLSTM_params(dataset_ID):
+    nums_units = [32, 64, 128, 512]
+    
+    rcLSTM_counts = {'rc_LSTM ' + str(num): 0 for num in nums_units}
+    rcLSTM_results = {'rc_LSTM ' + str(num): 0 for num in nums_units}
+    
+    rcLSTM_folder = 'Results/rc_LSTM_controls/'
+    
+    for i in range(len(nums_units)):
+        num = nums_units[i]
+        filename = rcLSTM_folder + 'fit_results_pop_rc_LSTM_' + dataset_ID + '_' + str(num) + '.pckl'
+        f = open(filename, 'rb')
+        obj = pickle.load(f)
+        f.close()
+
+        params = obj[0][0][0][0]
+    
+        num_params = 0
+        for param in params:
+            num_params += np.size(params[param])
+        
+        rcLSTM_counts['rc_LSTM ' + str(num)] = num_params
+        
+        filename = rcLSTM_folder + 'Test/' + 'final_fit_pop_rc_LSTM_' + dataset_ID + '_' + str(num) + '.pckl'
+        f = open(filename, 'rb')
+        obj = pickle.load(f)
+        f.close()
+        
+        rcLSTM_results['rc_LSTM ' + str(num)] = np.nanmedian(obj[1])
+        
+    return rcLSTM_counts, rcLSTM_results
+
 #############################################################################################################################
 
 def calc_se_median(models_results_dict):
@@ -2493,3 +2529,416 @@ def calc_se_median(models_results_dict):
     median_se['se'] = np.nanstd(sample_median, ddof=1)
     
     return median_se
+
+#############################################################################################################################
+
+def depth_sw_stats(models, layers, sws, CCnorms, dataset_ID, sw_stats):
+    l23_ccnorms, l4_ccnorms, l56_ccnorms = {models[0]: [], models[1]: []}, {models[0]: [], models[1]: []}, \
+        {models[0]: [], models[1]: []}
+    
+    # Difference depth and sw t-tests
+    ccnorm_diffs = {'13': [], '44': [], '56': []}
+    
+    for nID in range(len(layers)):
+        ccnorm_diffs[layers[nID]].append(CCnorms[models[0]][nID] - CCnorms[models[1]][nID])
+    
+    diff_ttest = {}
+    for layer_i in ccnorm_diffs:
+        for layer_j in ccnorm_diffs:
+            if layer_j != layer_i:
+                diff_ttest[layer_i + ' vs ' + layer_j] = scipy.stats.ttest_ind(ccnorm_diffs[layer_i], 
+                                                                               ccnorm_diffs[layer_j])[:]
+            
+    diff_ranktest = {}
+    for layer_i in ccnorm_diffs:
+        for layer_j in ccnorm_diffs:
+            if layer_j != layer_i:
+                diff_ranktest[layer_i + ' vs ' + layer_j] = scipy.stats.mannwhitneyu(ccnorm_diffs[layer_i], 
+                                                                                     ccnorm_diffs[layer_j])[:]
+                
+    ccnorm_diffs_1 = {'234': ccnorm_diffs['13'] + ccnorm_diffs['44'], '56': ccnorm_diffs['56']}
+    
+    depth_diff_ttest_1 = scipy.stats.ttest_ind(ccnorm_diffs_1['56'], ccnorm_diffs_1['234'])[:]
+    depth_diff_ranktest_1 = scipy.stats.mannwhitneyu(ccnorm_diffs_1['56'], ccnorm_diffs_1['234'])[:]
+    
+    if sw_stats:
+        ccnorm_sw_diffs = {'narrow': [], 'wide': []}
+        
+        for nID in range(len(sws[dataset_ID])):
+            if sws[dataset_ID][nID] < 0.35:
+                ccnorm_sw_diffs['narrow'].append(CCnorms[models[0]][nID] - CCnorms[models[1]][nID])
+            else:
+                ccnorm_sw_diffs['wide'].append(CCnorms[models[0]][nID] - CCnorms[models[1]][nID])
+        
+        sw_diff_ttest = scipy.stats.ttest_ind(ccnorm_sw_diffs['narrow'], ccnorm_sw_diffs['wide'])[:]
+        sw_diff_ranktest = scipy.stats.mannwhitneyu(ccnorm_sw_diffs['narrow'], ccnorm_sw_diffs['wide'])[:]
+    else:
+        sw_diff_ttest = []
+
+    return depth_diff_ttest_1, sw_diff_ttest
+
+#############################################################################################################################
+
+def param_match_compare(models_results_dict, model_ID, dataset_ID, nr_dict):
+    if dataset_ID == 'NS3':
+        CNN_param_match_file = 'Results/Param_matched_CNNs/final_fit_twoD_CNN_' + dataset_ID + '.pckl'
+        CNN = 'twoD_CNN'
+                
+    elif dataset_ID == 'NS3_PEG':
+        CNN_param_match_file = 'Results/Param_matched_CNNs/final_fit_oneD_CNN_' + dataset_ID + '.pckl'
+        CNN = 'oneD_CNN'
+                
+    elif dataset_ID == 'NS2_include_single':
+        CNN_param_match_file = 'Results/Param_matched_CNNs/final_fit_twoD_CNN_' + dataset_ID + '.pckl'
+        CNN = 'twoD_CNN'
+        
+    f = open(CNN_param_match_file, 'rb')
+    CNN_param_match_results = pickle.load(f)
+    f.close()
+    
+    param_match_file = 'Results/Param_matched_CNNs/final_fit_' + model_ID + '_' + dataset_ID + '.pckl'
+    f = open(param_match_file, 'rb')
+    param_match_results = pickle.load(f)
+    f.close()
+    
+    model_result = models_results_dict[model_ID][2]
+    CNN_result = CNN_param_match_results[1]
+    PM_model_result = param_match_results[1]
+
+    ttest = {model_ID + ' vs PM ' + CNN: [scipy.stats.ttest_rel(model_result, CNN_result)[0], \
+                                          scipy.stats.ttest_rel(model_result, CNN_result)[1]]}
+        
+    ttest[model_ID + ' vs PM ' + model_ID] = [scipy.stats.ttest_rel(model_result, PM_model_result)[0], \
+                                              scipy.stats.ttest_rel(model_result, PM_model_result)[1]]
+        
+    ttest['PM ' + CNN + ' vs PM ' + model_ID] = [scipy.stats.ttest_rel(CNN_result, PM_model_result)[0], \
+                                                 scipy.stats.ttest_rel(CNN_result, PM_model_result)[1]]
+        
+    ranktest = {model_ID + ' vs PM ' + CNN: [scipy.stats.wilcoxon(model_result, CNN_result)[0], \
+                                            scipy.stats.wilcoxon(model_result, CNN_result)[1]]}
+        
+    ranktest[model_ID + ' vs PM ' + model_ID] = [scipy.stats.wilcoxon(model_result, PM_model_result)[0], \
+                                                 scipy.stats.wilcoxon(model_result, PM_model_result)[1]]
+    
+    if model_ID == 'pop_f_LSTM':
+        ranktest['PM ' + CNN + ' vs PM ' + model_ID] = [scipy.stats.wilcoxon(CNN_result, PM_model_result)[0], \
+                                                    scipy.stats.wilcoxon(CNN_result, PM_model_result)[1]]
+    
+    CNN_fit_file = 'Results/Param_matched_CNNs/fit_results_' + CNN + '_' + dataset_ID + '.pckl'
+    f = open(CNN_fit_file, 'rb')
+    CNN_fit = pickle.load(f)
+    f.close()
+    
+    params = CNN_fit[0][0][0][0]    
+    num_params = 0
+    for param in params:
+        num_params += np.size(params[param])
+    
+    return ttest, ranktest, {'PM ' + CNN: [[], [], CNN_result]}, {'PM ' + CNN: num_params}
+
+#############################################################################################################################
+
+def compare_lowpass_LN(models_results_dict, dataset_ID, params):
+    lowpass_LN_folder = 'Results/lowpass_LN/'
+    cutoff_freqs = [2, 4, 8, 16, 32, 64, 124]
+    
+    pop_LN_results = models_results_dict['pop_LN'][2]
+    pop_f_LSTM_results = models_results_dict['pop_f_LSTM'][2]
+    
+    ranktest_dict = {}
+    ranktest_dict['pop_LN vs pop_f_LSTM'] = [scipy.stats.wilcoxon(pop_LN_results, pop_f_LSTM_results)[0], \
+                                                scipy.stats.wilcoxon(pop_LN_results, pop_f_LSTM_results)[1]]
+    
+    for freq in cutoff_freqs:
+        lowpass_LN_f = lowpass_LN_folder + 'final_fit_pop_lowpass_LN_' + dataset_ID + '_' + str(freq) + '.pckl'
+        f = open(lowpass_LN_f, 'rb')
+        lowpass_LN_results = pickle.load(f)
+        f.close()
+        
+        ranktest_dict['pop_LN vs pop_LN ' + str(freq)] = [scipy.stats.wilcoxon(pop_LN_results, lowpass_LN_results[1])[0], \
+                                                          scipy.stats.wilcoxon(pop_LN_results, lowpass_LN_results[1])[1]]
+            
+    return ranktest_dict
+
+#############################################################################################################################
+
+def HU_tonotopy_FRMs(models_fits_dict, model_ID, dataset_ID, f_range, mean_time, params, mov_av, plot_log, beta):
+    if mov_av:
+        f_range = moving_average(f_range, 3)
+    
+    min_F = 500
+    max_F = 23000
+    steps_per_octave = 8
+    n_steps = int(np.floor(steps_per_octave*np.log2(max_F/min_F)))
+    frequencies = min_F*(2**(np.arange(n_steps + 1)/steps_per_octave))
+    
+    fit_file = '/FRMs/valid_BFs.pckl'
+    f = open(fit_file, 'rb')
+    obj = pickle.load(f)
+    f.close()
+    
+    dataset_BFs = obj[0][dataset_ID]
+    BF_params = obj[1]
+
+    sr_mode = BF_params['FRM_params']['spike_rate_mode']
+    
+    fit_file = 'FRMs/valid_FRMs.pckl'
+    f = open(fit_file, 'rb')
+    obj = pickle.load(f)
+    f.close()
+    
+    dataset_valid_HUs = obj[dataset_ID]
+    
+    fit_file = 'FRMs/' + dataset_ID + '_FRMs.pckl'
+    f = open(fit_file, 'rb')
+    obj = pickle.load(f)
+    f.close()
+    
+    FRMs = obj[0]
+    
+    n_h = params['n_h']
+    n_F = params['n_F']
+    
+    fitted_params = models_fits_dict[model_ID][0][0]
+
+    lambdas = list(dataset_BFs.keys())
+    lambdas = [int(lamb) for lamb in lambdas]
+    
+    for lamb_idx in range(len(lambdas)):
+        lamb = lambdas[lamb_idx]
+        lamb_fitted_params = fitted_params[lamb][0]
+        
+        w_input_gate = lamb_fitted_params['w_h_t']
+        n_HUs = np.size(w_input_gate, 1)
+        HU_best_F_proj = np.zeros((n_HUs))
+        for HU in range(n_HUs):
+            HU_proj_weights = w_input_gate[:, HU]
+            HU_proj_weights = np.reshape(HU_proj_weights, (n_F, n_h))
+            
+            if mean_time:
+                if sr_mode == 'square':
+                    row_sum_weights = np.sum(np.square(HU_proj_weights), 1)
+                elif sr_mode == 'abs':
+                    row_sum_weights = np.sum(np.abs(HU_proj_weights), 1)
+                    
+                if mov_av:
+                    row_sum_weights = moving_average(row_sum_weights, 3)
+                    
+                best_F = f_range[np.nanargmax(row_sum_weights)]
+                
+            else:
+                best_F_idx = int(np.argwhere(HU_proj_weights == np.max(HU_proj_weights))[0][0])
+                best_F = f_range[best_F_idx]
+            
+            HU_best_F_proj[HU] = best_F
+
+        lamb_HU_BFs = dataset_BFs[str(lamb)]
+        
+        if BF_params['exclude']:
+            lamb_valid_HUs = dataset_valid_HUs[str(lamb)]
+        else:
+            lamb_valid_HUs = np.arange(0, n_HUs, 1)
+        
+        valid_HU_best_F_proj = HU_best_F_proj[lamb_valid_HUs]
+
+        if BF_params['method'] == 'peak':
+            nan_idxs = np.isnan(lamb_HU_BFs)
+            lamb_HU_BFs = np.delete(lamb_HU_BFs, nan_idxs)
+            valid_HU_best_F_proj = np.delete(valid_HU_best_F_proj, nan_idxs)
+        
+        if plot_log:
+            lamb_HU_BFs = np.log10(lamb_HU_BFs)
+            valid_HU_best_F_proj = np.log10(valid_HU_best_F_proj)
+        
+        if lamb == 14 or lamb == 15:
+        #if True:
+            X2 = sm.add_constant(lamb_HU_BFs) # add bias to independent variable
+            xseq = np.linspace(np.min(lamb_HU_BFs)-0.05, np.max(lamb_HU_BFs)+0.05, num=100)
+            
+            est = sm.OLS(valid_HU_best_F_proj, X2) # Ordinary Least Squares fit
+            est2 = est.fit()
+            a = est2.params[0] # bias
+            b = est2.params[1] # slope
+            
+            fig, ax = plt.subplots()
+            ax.scatter(lamb_HU_BFs, valid_HU_best_F_proj)
+            ax.plot(xseq, a+b*xseq, color='r')
+            if (ax.get_ylim()[1] - ax.get_ylim()[0]) > (ax.get_xlim()[1] - ax.get_xlim()[0]):
+                ax.set_xlim(ax.get_ylim())
+            else:
+                ax.set_ylim(ax.get_xlim())
+            ax.set_ylabel('best F - input gate projections')
+            ax.set_title(dataset_ID + ' - lambda ' + str(lamb) + ' - p = ' + str(est2.pvalues[1]))
+            ax = plt.gca()
+            ax.set_aspect('equal')
+
+            if beta:
+                beta_BF = lamb_HU_BFs/(np.nanmax(lamb_HU_BFs) + 1)
+                beta_proj_F = valid_HU_best_F_proj/(np.nanmax(valid_HU_best_F_proj) + 1)
+                
+                xseq = np.linspace(np.min(beta_BF)-0.05, np.max(beta_BF)+0.05, num=100)
+                
+                X2 = sm.add_constant(beta_BF)
+                est = BetaModel(beta_proj_F, X2) # Ordinary Least Squares fit
+                est2 = est.fit()
+
+                Xseq = sm.add_constant(xseq)
+                y_hat = est2.predict(Xseq)
+                
+                fig, ax = plt.subplots()
+                ax.scatter(beta_BF, beta_proj_F)
+                ax.plot(xseq, y_hat, color='r')
+                if (ax.get_ylim()[1] - ax.get_ylim()[0]) > (ax.get_xlim()[1] - ax.get_xlim()[0]):
+                    ax.set_xlim(ax.get_ylim())
+                else:
+                    ax.set_ylim(ax.get_xlim())
+                ax.set_ylabel('best F - input gate projections')
+                ax.set_title(dataset_ID + ' - lambda ' + str(lamb) + ' - p = ' + str(est2.pvalues[1]))
+                ax = plt.gca()
+                ax.set_aspect('equal')
+
+#############################################################################################################################
+
+def t_corr_stim_resp(n_neurons, stim_dataset, resp_dataset, models_fits_dict, models_best_lambdas, model_ID, folds, fID, 
+                     dataset_ID, av_f, pre_act, all_f, stim_abs, only_active):
+    '''
+    Parameters
+    ----------
+    n_neurons : number of neurons in dataset
+    stim_dataset : selected set of stimuli (dimensions -> (fold, f, history, concatenated t))
+    resp_dataset : selected set of responses (dimensions -> (neuron, fold, concatenated t))
+    models_fits_dict : dictionary containing fitted parameters, meta-info, and loss traces for one model, for each fold and
+    lambda
+    model_ID : name of model being analysed
+    folds : number of cross-validation folds
+    fID : active fold, not useful for NS3 and NS3_PEG, and not useful for test set analyses for any dataset
+
+    Returns
+    -------
+    '''
+
+    lambda_sequence = models_fits_dict[1]['lambdas'] # list of lambdas trialled in cross-validation
+    model_params = models_fits_dict[1]['all_model_params'] # hyperparameters used to implement model
+    
+    meta_info = models_fits_dict[-1]
+    
+    n_F = meta_info['n_F']
+    n_h = meta_info['n_h']
+    
+    neuron_bl = models_best_lambdas[model_ID]
+    unique_bl = np.unique(neuron_bl)
+    unique_bl = np.array([14, 15])
+    if dataset_ID == 'NS3':
+        unique_bl = np.array([15])
+    else:
+        unique_bl = np.array([14])
+    
+    corr_stim_gates = []
+    corr_resp_gates = [] # list to hold all correlations
+    
+    if pre_act:
+        gates_list = ['t_pre_act']
+    else:
+        gates_list = ['t']
+    t_gated_models_list = ['pop_f_LSTM']
+    
+    if model_ID in t_gated_models_list:
+        for fID in range(folds): # loop over folds
+            resps = np.transpose(resp_dataset[:, fID, :].detach().cpu().numpy())
+            stims = stim_dataset[fID, :, -1].detach().cpu().numpy()
+            if stim_abs:
+                stims = np.abs(stims)
+
+            f_av_stims = np.mean(stims, 0)
+            
+            fold_corr_resp_gates = {}
+            fold_corr_stim_gates = {}
+            
+            for lamb_idx in range(len(unique_bl)): # loop over lambdas
+                lamb = unique_bl[lamb_idx]
+                print('lamb = ' + str(lamb))
+                lamb_corr_resp_gates = {} # dictionary to hold correlations for lambda
+                lamb_corr_stim_gates = {}
+            
+                model = getattr(all_models, model_ID)(model_params) # initialise model
+                model.reload(models_fits_dict[0][fID][lamb][0]) # reload fitted parameters from fold and lambda
+                
+                stim_size = model_params['stim_size']
+                n_stims = int(np.size(stim_dataset, 3)/stim_size)
+                
+                if pre_act:
+                    traces = {'t_pre_act': np.zeros((model_params['input_size'], np.size(stim_dataset, 3)))}
+                else:
+                    traces = {'t': np.zeros((model_params['input_size'], np.size(stim_dataset, 3)))}
+                for sID in range(n_stims):
+                    print(sID)
+                    stim_traces = model.np_forward_loop(stim_dataset[fID, :, :, sID*stim_size:(sID + 1)*stim_size])
+                    
+                    if pre_act:
+                        traces['t_pre_act'][:, sID*stim_size:(sID + 1)*stim_size] = stim_traces['t_pre_act']
+                    else:
+                        traces['t'][:, sID*stim_size:(sID + 1)*stim_size] = stim_traces['t']
+
+                for key in traces: # loop over traces
+                    if key in gates_list: # check whether trace is that of a gating variable
+                        gate_traces = traces[key]
+                        gate_traces = np.reshape(gate_traces, (n_F, n_h, -1))
+
+                        f_av_gate_traces = np.mean(gate_traces, 0)
+                        
+                        resp_corr = np.zeros((n_neurons, n_h))
+                        stim_corr = np.zeros((n_h))
+                        all_stim_corr = np.zeros((n_h, n_F))
+                        all_ctr = 0
+                        small_ctr = 0
+                        large_ctr = 0
+                        for h_step in range(n_h):
+                            if av_f:
+                                stim_corr[h_step] = np.corrcoef(f_av_stims, f_av_gate_traces[h_step])[0, 1]
+                            else:
+                                f_chan_corr = np.zeros((np.size(stims, 0)))
+                                for f_chan in range(np.size(stims, 0)):
+                                    f_chan_corr[f_chan] = np.corrcoef(stims[f_chan], gate_traces[f_chan, h_step])[0, 1]
+                                    
+                                    if only_active:
+                                        max_gate = np.nanmax(gate_traces[f_chan, h_step])
+                                        min_gate = np.nanmin(gate_traces[f_chan, h_step])
+                                        
+                                        if max_gate < 0.2: # old results using 0.1
+                                            small_ctr += 1
+                                            f_chan_corr[f_chan] = np.nan
+                                        elif min_gate > 0.8: # old results using 0.9
+                                            large_ctr += 1
+                                            f_chan_corr[f_chan] = 1.5
+                                        elif (max_gate - min_gate) < 0.1: # old results using 0.1
+                                            import pdb
+                                            pdb.set_trace()
+                                            all_ctr += 1
+                                
+                                stim_corr[h_step] = np.mean(f_chan_corr)
+                                all_stim_corr[h_step] = f_chan_corr
+                        
+                        print(all_ctr)
+                        print(small_ctr)
+                        print(large_ctr)
+                        
+                        lamb_corr_resp_gates[key] = resp_corr
+                        if all_f:
+                            lamb_corr_stim_gates[key] = all_stim_corr
+                        else:
+                            lamb_corr_stim_gates[key] = stim_corr
+                
+                fold_corr_resp_gates[lamb] = lamb_corr_resp_gates
+                fold_corr_stim_gates[lamb] = lamb_corr_stim_gates
+                
+            corr_resp_gates.append(fold_corr_resp_gates)
+            corr_stim_gates.append(fold_corr_stim_gates)
+
+    return corr_resp_gates, corr_stim_gates
+                
+#############################################################################################################################
+
+def moving_average(a, n):
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
