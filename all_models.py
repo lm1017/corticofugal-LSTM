@@ -3472,7 +3472,149 @@ class pop_directrcLSTM(nn.Module):
                   'c': c_trace, 'h': h_trace, 'o_pre_act': o_pre_act_trace, 'o': o_trace}
         
         return traces
+
+#############################################################################################################################
+
+def low_pass_filter(signal: torch.Tensor, cutoff: float, fs: float, order: int = 4, axis: int = -1) -> np.ndarray:
+    """
+    Applies a Butterworth low-pass filter to a Torch tensor (1D or 2D).
+
+    Parameters:
+    - signal: Torch tensor of the signal (1D or 2D).
+    - cutoff: Cutoff frequency in Hz.
+    - fs: Sampling frequency in Hz.
+    - order: Order of the filter (higher means sharper cutoff).
+    - axis: Axis to filter along (default is -1, last axis).
+
+    Returns:
+    - Filtered signal as a NumPy array.
+    """
+    nyquist = 0.5 * fs  # Nyquist frequency
+    normal_cutoff = cutoff / nyquist  # Normalize cutoff frequency
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)  # Design filter
+
+    a = torch.as_tensor(a, dtype=torch.float32).to(device)
+    b = torch.as_tensor(b, dtype=torch.float32).to(device)
+    # Apply filter along the specified axis
+    filtered_signal = filtfilt(signal, a, b)
     
+    return filtered_signal
+
+class pop_lowpass_LN(nn.Module):
+    def __init__(self, params):
+        super().__init__()
+        
+        '''Pennington and David params (bin_size = 10):
+        self.n_F = 18
+        self.n_filters_1 = 120
+        self.filter_len_1 = 25
+        self.n_out = 849'''
+        
+        self.n_F = params['n_F'] # number of frequency channels
+        self.n_filters_1 = params['n_filters_1'] # number of filters in conv layer
+        self.filter_len_1 = params['filter_len_1'] # length (in time bins) of filters in conv layer
+        self.n_out = params['n_out'] # output (linear) layer size
+
+        self.conv1 = torch.nn.Conv1d(self.n_F, self.n_filters_1, self.filter_len_1) # conv layer
+        self.l1 = torch.nn.Linear(self.n_filters_1, self.n_out) # linear layer
+        
+        self.stim_size = params['stim_size'] # stimulus length (in time bins)
+        self.resp_size = params['resp_size'] # response length (in time bins)
+        
+        self.cutoff = params['lowpass_f']
+
+    def forward(self, x, stage):
+        # forward pass of data through network
+        # input x dimensions -> (f, t) or (n, f, t) where n is number of stimuli
+        x_filt = low_pass_filter(x, self.cutoff, 250)
+        
+        x = self.conv1(x_filt) # convolutional layer, output dimensions -> (filters, t) or (n, filters, t) with n as above
+        
+        if len(x.shape) == 2: # if no stimulus dimension, permute conv layer output to (t, filters)
+            x = x.permute(1, 0)
+        if len(x.shape) == 3: # if there is a stimulus dimension, permute conv layer output to (n, t, filters)
+            x = x.permute(0, 2, 1)
+            
+        # linear layer, output dimensions -> (t, n_out) or (n, t, n_out) with n as above and usually n_out = neurons
+        x = self.l1(x)
+        x = torch.sigmoid(x) # sigmoid nonlinearity
+
+        return x
+    
+    def forward_loop(self, inputs, target_data, stage):
+        # difference between stimulus and response size (may be due to zero-padding and tensorisation history having 
+        # different lengths)
+        stim_resp_diff = self.stim_size - self.resp_size
+
+        # de-tensorise cochleagrams: only keep final element on history axis at each time point, then remove history 
+        # dimension; tensorisation is useless for convolutional models as they take stimulus history into account through
+        # filter length
+        inputs = torch.squeeze(inputs[:, -1, :])
+
+        # if input length is larger than the length of a stimulus (minibatch made up of more than one stimulus), reshape
+        # input from dimensions (f, concatenated t) to (n, f, t), where n is the number of stimuli in the input minibatch
+        # NOTE: models only work if minibatches include integer numbers of stimulus/response pairs
+        if inputs.size(1) > self.stim_size:
+            inputs = inputs.view(self.n_F, -1, self.stim_size) # reshape to (f, n, t)
+            inputs = inputs.permute(1, 0, 2) # permute dimensions to (n, f, t)
+
+        # forward pass -> get response prediction output (dimensions -> (t, neurons) or (n, t, neurons))
+        outputs = self.forward(inputs, stage)
+        
+        target_data = target_data.transpose(0, 1).to(torch.float32) # transpose target data to (t, neurons)
+
+        # if target length is larger than the length of a response (minibatch made up of more than one responses), reshape
+        # target from dimensions (concatenated t, neurons) to (n, t, neurons), where n is the number of responses in the 
+        # target minibatch
+        if target_data.size(0) > self.resp_size:
+            targets = target_data.view(int(target_data.size(0)/self.resp_size), self.resp_size, -1)
+            
+            # if target length (in time) is larger than output length (may be due to mismatch in zero_padding bins and 
+            # convolutional filter length), remove bins at the start of time axis corresponding to convolutional filter 
+            # lengths while taking stimulus-response size difference into account
+            if targets.size(1) > outputs.size(1):
+                targets = targets[:, self.filter_len_1-1-stim_resp_diff:, :]
+                
+            # maybe must add option where output length is larger than target length, could be due to zero-padding being
+            # being longer than convolutional filter length - would have to clip first few bins off output in that case
+        
+        # if target length is equal to response length but larger than output length, also adjust time axis accordingly as
+        # above
+        elif target_data.size(0) == self.resp_size and target_data.size(0) > outputs.size(0):
+            targets = target_data[self.filter_len_1-1-stim_resp_diff:, :]
+            
+        # if target length is equal to output length, leave target unchanged
+        elif target_data.size(0) == self.resp_size and target_data.size(0) == outputs.size(0):
+            targets = target_data
+
+        return outputs, targets
+            
+    def regul(self, lamb):
+        # L1 regularisation loss on network weights
+        regul_loss = lamb*(self.conv1.weight.norm(p=1) + self.l1.weight.norm(p=1))
+        
+        return regul_loss
+    
+    def get_params(self):
+        model_info = {
+            'w_conv1': self.conv1.weight, # weights - convolutional layer
+            'b_conv1': self.conv1.bias, # biases - convolutional layer
+            'w_l1': self.l1.weight, # weights - linear layer
+            'b_l1': self.l1.bias} # biases - linear layer
+        
+        return model_info
+    
+    def reload(self, info):
+        # reload convolutional layer
+        self.conv1 = torch.nn.Conv1d(self.n_F, self.n_filters_1, self.filter_len_1)
+        self.conv1.weight = nn.Parameter(torch.tensor(info['w_conv1']).to(torch.float32).to(device))
+        self.conv1.bias = nn.Parameter(torch.tensor(info['b_conv1']).to(torch.float32).to(device))
+        
+        # reload linear layer
+        self.l1 = torch.nn.Linear(self.n_filters_1, self.n_out)
+        self.l1.weight = nn.Parameter(torch.tensor(info['w_l1']).to(torch.float32).to(device))
+        self.l1.bias = nn.Parameter(torch.tensor(info['b_l1']).to(torch.float32).to(device))
+
 ################################### PENNINGTON AND DAVID 2023 MODELS ########################################################
     
 class pop_LN(nn.Module):
