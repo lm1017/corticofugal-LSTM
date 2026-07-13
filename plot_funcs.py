@@ -1223,8 +1223,7 @@ def plot_loss_curves(datasets, models, fits_dict):
                     
 #############################################################################################################################
 
-def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_data, dataset_ID, models):
-    
+def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_data, dataset_ID, models, plot_sw):
     plot_mode = 'av'
     exclude_few = 'exclude'
     
@@ -1263,12 +1262,12 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
         
         if neuron_ID in depth_sw[0]:
             n_IDs.append(neuron_list[n_idx])
-
+    
     win_overlap = 50 # depth averaging window overlap, in microns
     win_size = 200 # depth averaging window size, in microns
     
     # uncomment for plots with NS2 range
-    if dataset_ID == 'NS3' or dataset_ID == 'NS3_PEG':
+    '''if dataset_ID == 'NS3' or dataset_ID == 'NS3_PEG':
         small_depths = np.where(np.array(neuron_depths) < -700)[0]
         large_depths = np.where(np.array(neuron_depths) > 600)[0]
         extra_depths = np.concatenate((small_depths, large_depths))
@@ -1279,7 +1278,7 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
 
         neuron_depths = list(new_neuron_depths)
         neuron_layers = list(new_neuron_layers)
-        neuron_idxs = list(new_neuron_idxs)
+        neuron_idxs = list(new_neuron_idxs)'''
 
     if (np.max(neuron_depths) - np.min(neuron_depths)) % win_overlap == 0:
         left_min = np.min(neuron_depths)
@@ -1309,6 +1308,30 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
         depth_av_win_centre = depth_av_win_left + win_size/2
         
         depth_av_win_right[-1] = depth_av_win_right[-1] + 1
+    
+    sw_win_overlap = 0.05
+    sw_win_size = 0.2
+    if (np.max(neuron_sws) - np.min(neuron_sws)) % sw_win_overlap == 0:
+        left_min = np.min(neuron_sws)
+        left_max = np.max(neuron_sws) - sw_win_size
+        
+        sw_av_win_left = np.arange(left_min, left_max + sw_win_overlap, sw_win_overlap)
+        sw_av_win_right = sw_av_win_left + sw_win_size
+        
+        sw_av_win_centre = sw_av_win_left + sw_win_size/2
+    else:
+        min_limit = round(np.min(neuron_sws), 0)
+        max_limit = round(np.max(neuron_sws), 0)
+        
+        left_min = min_limit
+        left_max = max_limit - sw_win_size
+
+        sw_av_win_left = np.arange(left_min, left_max + sw_win_overlap, sw_win_overlap)
+        sw_av_win_right = sw_av_win_left + sw_win_size
+        
+        sw_av_win_centre = sw_av_win_left + sw_win_size/2
+        
+        sw_av_win_right[-1] = sw_av_win_right[-1] + 1
         
     # define layer-based colourmap - black is 13, red is 4, blue is 56
     layers_cmap = mcolors.ListedColormap(['black', 'red', 'blue'])
@@ -1321,11 +1344,18 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
         elif neuron == '56':
             layer_colours.append(2)
     
-    depth_win_axis = {}
     CCnorms = {}
-    CCnorm_diff = {}
-    CCnorm_diff_se = {}
+    
+    depth_win_axis = {}
+    depth_CCnorm_diff = {}
+    depth_CCnorm_diff_se = {}
+    
+    sw_win_axis = {}
+    sw_CCnorm_diff = {}
+    sw_CCnorm_diff_se = {}
+    
     f1, ax1 = plt.subplots()
+    f2, ax2 = plt.subplots()
     for i_model_ID in models:
         model_ccnorms = models_results_dict[i_model_ID][2]
         
@@ -1337,8 +1367,7 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
         ########## Plots for each model
         
         # Plot of depth, noise ratio, and spike width graphs
-        '''
-        f, (ax1, ax2, ax3) = plt.subplots(1, 3)
+        '''f, (ax1, ax2, ax3) = plt.subplots(1, 3)
         
         # CCnorm vs depth
         X2 = sm.add_constant(neuron_depths) # add bias to independent variable
@@ -1373,11 +1402,12 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
         ax3.set_xlabel('spike width (ms)')
         ax3.set_title('p = ' + str(est2.pvalues[1]))
         
-        f.suptitle(dataset_ID + ' - ' + i_model_ID)
-        '''
+        f.suptitle(dataset_ID + ' - ' + i_model_ID)'''
+        
         
         # Plot of depth graph only
         if plot_mode == 'full':
+            # DEPTH
             X2 = sm.add_constant(neuron_depths) # add bias to independent variable
             xseq = np.linspace(np.min(neuron_depths)-0.05, np.max(neuron_depths)+0.05, num=100)
             est = sm.OLS(used_ccnorms, X2) # Ordinary Least Squares fit
@@ -1395,8 +1425,31 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
             ax1.legend(handles = handles, labels = ['1/3', '4', '5/6'])
             ax1.set_title(dataset_ID + ' - ' + i_model_ID + ' - p = ' + str(est2.pvalues[1]))
             ax1.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
+            
+            #f1.savefig('/home/lorenzom/Downloads/Temp/Depth_sw/CCnorm/' + dataset_ID + '_' + i_model_ID + '_depth.png')
+            
+            # SW
+            if plot_sw:
+                X2 = sm.add_constant(neuron_sws) # add bias to independent variable
+                xseq = np.linspace(np.min(neuron_sws)-0.05, np.max(neuron_sws)+0.05, num=100)
+                est = sm.OLS(used_ccnorms, X2) # Ordinary Least Squares fit
+                est2 = est.fit()
+                a = est2.params[0] # bias
+                b = est2.params[1] # slope
+                
+                f2, ax2 = plt.subplots()
+                scatter = ax2.scatter(neuron_sws, used_ccnorms, c=layer_colours, cmap=layers_cmap)
+                ax2.plot(xseq, a+b*xseq, color='r')
+                #ax2.set_xlim([-700, 600]) # uncomment for plots with NS2 depth range
+                ax2.set_xlabel('spike width (ms)')
+                ax2.set_ylabel('CCnorm')
+                ax2.set_title(dataset_ID + ' - ' + i_model_ID + ' - p = ' + str(est2.pvalues[1]))
+                ax2.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
+                
+                #f2.savefig('/home/lorenzom/Downloads/Temp/Depth_sw/CCnorm/' + dataset_ID + '_' + i_model_ID + '_depth.png')
         
         elif plot_mode == 'av':
+            # DEPTH
             depth_av_ccnorm = np.zeros((len(depth_av_win_centre)))
             depth_se_ccnorm = np.zeros((len(depth_av_win_centre)))
             
@@ -1435,42 +1488,66 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
             ax1.fill_between(depth_av_win_centre, depth_av_ccnorm-depth_se_ccnorm, depth_av_ccnorm+depth_se_ccnorm, 
                              color=colours[i_model_ID], alpha=0.2)
             #ax1.set_xlim([-700, 600]) # uncomment for plots with NS2 depth range
-            ax1.set_xlabel('depth (micron from layer 3/4)')
-            ax1.set_ylabel('CCnorm')
-            ax1.set_title(dataset_ID + ' - ' + i_model_ID)
+            #ax1.set_xlabel('depth (micron from layer 3/4)')
+            #ax1.set_ylabel('CCnorm')
+            #ax1.set_title(dataset_ID + ' - ' + i_model_ID)
             ax1.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
-
-            #ax1.set_yticks([0.4, 0.5, 0.6, 0.7, 0.8])
-            #ax1.set_yticks([0.5, 0.55, 0.6, 0.65, 0.7])
-            #ax1.set_yticks([0.45, 0.5, 0.55, 0.6, 0.65])
-            #ax1.set_yticks([0.35, 0.45, 0.55, 0.65, 0.75])
+            
+            ax1.set_xticks([-750, -500, -250, 0, 250, 500, 750]) # NS3-PEG, NS3
+            #ax1.set_yticks([0.4, 0.5, 0.6, 0.7, 0.8]) # NS2
+            #ax1.set_yticks([0.5, 0.55, 0.6, 0.65, 0.7]) # NS3, NS2 range
+            #ax1.set_yticks([0.45, 0.55, 0.65, 0.75]) # NS3
+            #ax1.set_yticks([0.45, 0.5, 0.55, 0.6, 0.65]) # NS3-PEG, NS2 range
+            ax1.set_yticks([0.35, 0.45, 0.55, 0.65, 0.75]) # NS3-PEG
             #ax1.set_xticks(np.arange(-750, 1000, 250))
-            #ax1.xaxis.set_tick_params(labelcolor='none')
-            #ax1.yaxis.set_tick_params(labelcolor='none')
+            ax1.xaxis.set_tick_params(labelcolor='none')
+            ax1.yaxis.set_tick_params(labelcolor='none')
+            
+            #f1.savefig('/home/lorenzom/Downloads/Temp/Depth_sw/CCnorm/Av/' + dataset_ID + '_' + i_model_ID + '_depth_win' + \
+                       #str(win_size) + '_' + exclude_few + '.png')
+            
+            # SW
+            if plot_sw:
+                sw_av_ccnorm = np.zeros((len(sw_av_win_centre)))
+                sw_se_ccnorm = np.zeros((len(sw_av_win_centre)))
+                
+                if exclude_few == 'exclude':
+                    for win in range(len(sw_av_ccnorm)):
+                        idxs_1 = np.where((np.array(neuron_sws) >= sw_av_win_left[win]))[0]
+                        idxs_2 = np.where((np.array(neuron_sws) < sw_av_win_right[win]))[0]
+                        idxs = np.intersect1d(idxs_1, idxs_2)
+                        
+                        if len(idxs) >= 3:
+                            sw_av_ccnorm[win] = np.nanmean(used_ccnorms[idxs])
+                            sw_se_ccnorm[win] = np.nanstd(used_ccnorms[idxs], ddof=1)/np.sqrt(len(idxs))
+                        else:
+                            sw_av_ccnorm[win] = np.nan
+                            sw_se_ccnorm[win] = np.nan
+    
+                else:
+                    for win in range(len(sw_av_ccnorm)):
+                        idxs_1 = np.where((np.array(neuron_sws) >= sw_av_win_left[win]))[0]
+                        idxs_2 = np.where((np.array(neuron_sws) < sw_av_win_right[win]))[0]
+                        idxs = np.intersect1d(idxs_1, idxs_2)
+                        
+                        sw_av_ccnorm[win] = np.nanmean(used_ccnorms[idxs])
+                        sw_se_ccnorm[win] = np.nanstd(used_ccnorms[idxs], ddof=1)/np.sqrt(len(idxs))
+                
+                
+                ax2.plot(sw_av_win_centre, sw_av_ccnorm, linewidth=3, color=colours[i_model_ID])
+                ax2.fill_between(sw_av_win_centre, sw_av_ccnorm-sw_se_ccnorm, sw_av_ccnorm+sw_se_ccnorm, 
+                                 color=colours[i_model_ID], alpha=0.2)
+                #ax2.set_xlim([-700, 600]) # uncomment for plots with NS2 depth range
+                #ax2.set_xlabel('spike width (ms)')
+                #ax2.set_ylabel('CCnorm')
+                #ax2.set_title(dataset_ID + ' - ' + i_model_ID)
+                ax2.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
+                #ax2.set_yticks([0.55, 0.65, 0.75]) # NS3, NS2
+                ax2.set_yticks([0.5, 0.6, 0.7]) # NS3-PEG
+                ax2.set_xticks([0.2, 0.4, 0.6, 0.8])
+                ax2.xaxis.set_tick_params(labelcolor='none')
+                ax2.yaxis.set_tick_params(labelcolor='none')
         
-        # Noise ratio vs depth (independent of model)
-        '''f1, ax1 = plt.subplots()
-        
-        X2 = sm.add_constant(neuron_depths) # add bias to independent variable
-        xseq = np.linspace(np.min(neuron_depths)-0.05, np.max(neuron_depths)+0.05, num=100)
-        est = sm.OLS(used_nr, X2) # Ordinary Least Squares fit
-        est2 = est.fit()
-        a = est2.params[0] # bias
-        b = est2.params[1] # slope
-        
-        ax1.scatter(neuron_depths, used_nr)
-        ax1.plot(xseq, a+b*xseq, color='r')
-        ax1.set_xlabel('depth (micron from layer 3/4)')
-        ax1.set_ylabel('Noise ratio')
-        ax1.set_title(dataset_ID + ' - p = ' + str(est2.pvalues[1]))'''
-        
-        # Spike rate distribution (independent of model)
-        '''f2, ax2 = plt.subplots()
-
-        ax2.hist(neuron_sws, bins=10, density=True)
-        ax2.set_xlabel('spike width (ms)')
-        ax2.set_ylabel('count')
-        ax2.set_title(dataset_ID)'''
         
         for j_model_ID in models: # loop over models
             if j_model_ID != i_model_ID:
@@ -1549,8 +1626,12 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
                     ax1.legend(handles = handles, labels = ['1/3', '4', '5/6'])
                     ax1.set_title(dataset_ID + ' - ' + i_model_ID + ' vs ' + j_model_ID + ' - p = ' + str(est2.pvalues[1]))
                     ax1.spines[['right', 'top']].set_visible(False)
+                    
+                    #f1.savefig('/home/lorenzom/Downloads/Temp/Depth_sw/CCnorm/' + dataset_ID + '_' + i_model_ID + '_' + \
+                               #j_model_ID + '_depth.png')
                 
                 elif plot_mode == 'av':
+                    # DEPTH
                     depth_av_ccnorm_change = np.zeros((len(depth_av_win_centre)))
                     depth_se_ccnorm_change = np.zeros((len(depth_av_win_centre)))
                     
@@ -1584,24 +1665,72 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
                             depth_av_ccnorm_change[win] = np.nanmean(used_ccnorms_change[idxs])
                             depth_se_ccnorm_change[win] = np.nanstd(used_ccnorms_change[idxs], ddof=1)/np.sqrt(len(idxs))
                     
-                    f2, ax2 = plt.subplots()
-                    ax2.plot(depth_av_win_centre, depth_av_ccnorm_change, linewidth=3)
-                    ax2.fill_between(depth_av_win_centre, depth_av_ccnorm_change-depth_se_ccnorm_change, 
+                    f3, ax3 = plt.subplots()
+                    ax3.plot(depth_av_win_centre, depth_av_ccnorm_change, linewidth=3)
+                    ax3.fill_between(depth_av_win_centre, depth_av_ccnorm_change-depth_se_ccnorm_change, 
                                      depth_av_ccnorm_change+depth_se_ccnorm_change, alpha=0.2)
-                    #ax2.set_xlim([-700, 600]) # uncomment for plots with NS2 depth range
-                    ax2.set_xlabel('depth (micron from layer 3/4)')
-                    ax2.set_ylabel('CCnorm')
-                    #ax2.set_ylim([-0.105, 0.035])
-                    ax2.set_title(dataset_ID + ' - ' + i_model_ID + ' vs ' + j_model_ID)
-                    #ax2.xaxis.set_tick_params(labelcolor='none')
-                    #ax2.yaxis.set_tick_params(labelcolor='none')
-                    ax2.spines[['right', 'top']].set_visible(False)
+                    #ax3.set_xlim([-700, 600]) # uncomment for plots with NS2 depth range
+                    ax3.set_xlabel('depth (micron from layer 3/4)')
+                    ax3.set_ylabel('CCnorm')
+                    #ax3.set_ylim([-0.105, 0.035])
+                    ax3.set_title(dataset_ID + ' - ' + i_model_ID + ' vs ' + j_model_ID)
+                    #ax3.xaxis.set_tick_params(labelcolor='none')
+                    #ax3.yaxis.set_tick_params(labelcolor='none')
+                    ax3.spines[['right', 'top']].set_visible(False)
+                    
+                    #f3.savefig('/home/lorenzom/Downloads/Temp/Depth_sw/CCnorm/Av/' + dataset_ID + '_' + i_model_ID + '_' + \
+                               #j_model_ID + '_depth_win' + str(win_size) + '_' + exclude_few + '.png')
                                
                     depth_win_axis[i_model_ID + ' vs ' + j_model_ID] = depth_av_win_centre
-                    CCnorm_diff[i_model_ID + ' vs ' + j_model_ID] = depth_av_ccnorm_change
-                    CCnorm_diff_se[i_model_ID + ' vs ' + j_model_ID] = depth_se_ccnorm_change
+                    depth_CCnorm_diff[i_model_ID + ' vs ' + j_model_ID] = depth_av_ccnorm_change
+                    depth_CCnorm_diff_se[i_model_ID + ' vs ' + j_model_ID] = depth_se_ccnorm_change
+                    
+                    # SW
+                    if plot_sw:
+                        sw_av_ccnorm_change = np.zeros((len(sw_av_win_centre)))
+                        sw_se_ccnorm_change = np.zeros((len(sw_av_win_centre)))
+                        
+                        if exclude_few == 'exclude':
+                            for win in range(len(sw_av_ccnorm)):
+                                idxs_1 = np.where((np.array(neuron_sws) >= sw_av_win_left[win]))[0]
+                                idxs_2 = np.where((np.array(neuron_sws) < sw_av_win_right[win]))[0]
+                                idxs = np.intersect1d(idxs_1, idxs_2)
+                                
+                                if len(idxs) >= 3:
+                                    sw_av_ccnorm_change[win] = np.nanmean(used_ccnorms_change[idxs])
+                                    sw_se_ccnorm_change[win] = np.nanstd(used_ccnorms_change[idxs], ddof=1)/np.sqrt(len(idxs))
+                                else:
+                                    sw_av_ccnorm_change[win] = np.nan
+                                    sw_se_ccnorm_change[win] = np.nan
+                                    
+                        else:
+                            for win in range(len(sw_av_ccnorm)):
+                                idxs_1 = np.where((np.array(neuron_sws) >= sw_av_win_left[win]))[0]
+                                idxs_2 = np.where((np.array(neuron_sws) < sw_av_win_right[win]))[0]
+                                idxs = np.intersect1d(idxs_1, idxs_2)
+                                
+                                sw_av_ccnorm_change[win] = np.nanmean(used_ccnorms_change[idxs])
+                                sw_se_ccnorm_change[win] = np.nanstd(used_ccnorms_change[idxs], ddof=1)/np.sqrt(len(idxs))
+                        
+                        f4, ax4 = plt.subplots()
+                        ax4.plot(sw_av_win_centre, sw_av_ccnorm_change, linewidth=3)
+                        ax4.fill_between(sw_av_win_centre, sw_av_ccnorm_change-sw_se_ccnorm_change, 
+                                         sw_av_ccnorm_change+sw_se_ccnorm_change, alpha=0.2)
+                        #ax4.set_xlim([-700, 600]) # uncomment for plots with NS2 depth range
+                        ax4.set_xlabel('sw (ms)')
+                        ax4.set_ylabel('CCnorm')
+                        #ax4.set_ylim([-0.105, 0.035])
+                        ax4.set_title(dataset_ID + ' - ' + i_model_ID + ' vs ' + j_model_ID)
+                        #ax4.xaxis.set_tick_params(labelcolor='none')
+                        #ax4.yaxis.set_tick_params(labelcolor='none')
+                        ax4.spines[['right', 'top']].set_visible(False)
+                                   
+                        sw_win_axis[i_model_ID + ' vs ' + j_model_ID] = sw_av_win_centre
+                        sw_CCnorm_diff[i_model_ID + ' vs ' + j_model_ID] = sw_av_ccnorm_change
+                        sw_CCnorm_diff_se[i_model_ID + ' vs ' + j_model_ID] = sw_se_ccnorm_change
    
-    return neuron_depths, depth_win_axis, CCnorm_diff, CCnorm_diff_se, CCnorms, neuron_layers
+    return neuron_depths, depth_win_axis, depth_CCnorm_diff, depth_CCnorm_diff_se, neuron_sws, sw_win_axis, sw_CCnorm_diff, \
+        sw_CCnorm_diff_se, CCnorms, neuron_layers
                         
 #############################################################################################################################
 
@@ -3724,3 +3853,216 @@ def fake_parula():
     test_cm = LinearSegmentedColormap.from_list(__file__, cm_data)
 
     return test_cm
+
+#############################################################################################################################
+
+def spont_FR_analysis(models_results_dict, dataset_ID, dataset_params):
+    if dataset_ID == 'NS3' or dataset_ID == 'NS3_PEG':
+        spont_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_prebuild_spontaneous.pckl'
+    elif dataset_ID == 'NS2_include_single':
+        spont_file = 'Data/NS2_raw/NS2_prebuild_spontaneous.pckl'
+
+    f = open(spont_file, 'rb')
+    spont_spikes = pickle.load(f)
+    f.close()
+    
+    nIDs = dataset_params['neurons_ID_sess']
+    spont_FRs = []
+    
+    for nID, sess in nIDs:
+        sess -= 1
+        spont_times = spont_spikes['silence_times'][sess]
+        sess_nIDs = spont_spikes['neuron_IDs'][sess]
+        sess_spikes = spont_spikes['all_sess_resps'][sess]
+        
+        total_spont_time = sum([time[1] - time[0] for time in spont_times])
+        
+        nID_sess_idx = sess_nIDs.index(nID)
+        nID_spikes = sess_spikes[nID_sess_idx]
+        num_spikes = sum([len(silence_spikes) for silence_spikes in nID_spikes])
+        
+        spont_FRs.append(num_spikes/total_spont_time)
+    
+    for model in models_results_dict:
+        CCnorms = models_results_dict[model][2]
+        
+        f, ax = plt.subplots()
+        ax.scatter(spont_FRs, CCnorms)
+        ax.set_xlabel('spontaneous FR')
+        ax.set_ylabel('CCnorm')
+        ax.set_title(dataset_ID + ' - ' + model)
+        
+        X2 = sm.add_constant(spont_FRs) # add bias to independent variable
+        est = sm.OLS(CCnorms, X2) # Ordinary Least Squares fit
+        est2 = est.fit()
+        a = est2.params[0] # bias
+        b = est2.params[1] # slope
+        # x-sequence for plotting line of best fit
+        xseq = np.linspace(np.min(spont_FRs) - 0.05, np.max(spont_FRs) + 0.05, num=100)
+        
+        ax.plot(xseq, a+b*xseq, color='b')
+        ax.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
+        
+        for other_model in models_results_dict:
+            if other_model != model:
+                CCnorm_diff = models_results_dict[other_model][2] - CCnorms
+                
+                f, ax = plt.subplots()
+                ax.scatter(spont_FRs, CCnorm_diff)
+                #ax.set_xlabel('spontaneous FR')
+                #ax.set_ylabel('CCnorm diff')
+                
+                X2 = sm.add_constant(spont_FRs) # add bias to independent variable
+                est = sm.OLS(CCnorm_diff, X2) # Ordinary Least Squares fit
+                est2 = est.fit()
+                a = est2.params[0] # bias
+                b = est2.params[1] # slope
+                # x-sequence for plotting line of best fit
+                xseq = np.linspace(np.min(spont_FRs) - 0.05, np.max(spont_FRs) + 0.05, num=100)
+
+                ax.plot(xseq, a+b*xseq, color='k')
+                ax.spines[['right', 'top']].set_visible(False)
+                #ax.set_xticks([0, 20, 40, 60, 80, 100]) # NS3
+                #ax.set_xticks([0, 10, 20, 30, 40, 50]) # NS3-PEG
+                ax.set_xticks([0, 10, 20, 30, 40, 50, 60]) # NS2
+                #ax.set_yticks([-0.2, 0, 0.2, 0.4, 0.6]) # NS3
+                #ax.set_yticks([-0.5, -0.25, 0, 0.25, 0.5]) # NS3-PEG
+                ax.set_yticks([-0.2, 0, 0.2, 0.4]) # NS2
+                ax.xaxis.set_tick_params(labelcolor='none')
+                ax.yaxis.set_tick_params(labelcolor='none')
+                #ax.set_title(dataset_ID + ' - ' + other_model + ' vs ' + model + ' - p = ' + str(est2.pvalues[1]))
+
+#############################################################################################################################
+
+def plot_param_count(models_param_count, rc_LSTM_param_count, models_results_dict, rc_LSTM_performance, dataset_ID):
+    models_med_results = {model_ID: np.nanmedian(models_results_dict[model_ID][2]) for model_ID in models_results_dict}
+    
+    if dataset_ID == 'NS3' or dataset_ID == 'NS2_include_single':
+        models_param_count.update(rc_LSTM_param_count)
+        models_med_results.update(rc_LSTM_performance)
+    
+    model_colours = {'pop_LN': 'tab:blue', 'pop_NRF': 'tab:blue', 'pop_RNN': 'tab:green', 'pop_MGU': 'tab:red', 
+                     'pop_GRU': 'tab:red', 'pop_LSTM': 'tab:red', 'pop_subLSTM': 'tab:red', 'pop_f_LSTM': 'tab:red', 
+                     'pop_rc_LSTM': 'tab:red', 'rc_LSTM 32': 'tab:red', 'rc_LSTM 64': 'tab:red', 'rc_LSTM 128': 'tab:red', 
+                     'rc_LSTM 512': 'tab:red', 'oneD_CNN': 'tab:blue', 'oneD_x2_CNN': 'tab:blue', 'twoD_CNN': 'tab:blue', 
+                     'PM twoD_CNN': 'tab:blue', 'PM oneD_CNN': 'tab:blue'}
+    
+    f, ax = plt.subplots()
+    f.set_size_inches(12, 4.8)
+    for model_ID in models_param_count:
+        ax.scatter(models_param_count[model_ID], models_med_results[model_ID], color=model_colours[model_ID], s=50)
+    #ax.set_xlabel('Parameter count')
+    #ax.set_ylabel('Median CCnorm')
+    #ax.set_title(dataset_ID)
+    if dataset_ID == 'NS3' or dataset_ID == 'NS2_include_single':
+        ax.set_xticks([0, 100000, 200000, 300000, 400000, 500000, 600000])
+        ax.set_yticks([0.5, 0.6, 0.7])
+    else:
+        ax.set_xlim([0, 350000])
+        ax.set_xticks([0, 100000, 200000, 300000])
+        ax.set_yticks([0.45, 0.5, 0.55, 0.6])
+    ax.spines[['right', 'top']].set_visible(False)
+    ax.xaxis.set_tick_params(labelcolor='none')
+    ax.yaxis.set_tick_params(labelcolor='none')
+
+#############################################################################################################################
+
+def plot_t_corr(t_corr_resps, t_corr_stims, n_neurons, best_lambdas, dataset_ID, models, pre_act, all_f):
+    if pre_act:
+        gate_key = 't_pre_act'
+    else:
+        gate_key = 't'
+    
+    if dataset_ID == 'NS3':
+        mode_lamb = 15
+    else:
+        mode_lamb = 14
+        
+    redblue_cmap = redblue(256)
+        
+    for model_ID in models:
+        model_corr_resps = t_corr_resps[model_ID][0]
+        model_corr_stims = t_corr_stims[model_ID][0]
+        
+        if all_f:
+            redblue_cmap.set_bad('black')
+            redblue_cmap.set_over('green')
+            
+            f, ax = plt.subplots(figsize=(12, 5))
+            '''im = ax.imshow(model_corr_stims[mode_lamb][gate_key], cmap='Greens', aspect='auto', interpolation='none', 
+                      origin='lower', vmin=-1, vmax=1)'''
+            im = ax.imshow(model_corr_stims[mode_lamb][gate_key], cmap=redblue_cmap, aspect='auto', interpolation='none', 
+                      origin='lower', vmin=-1, vmax=1)
+            #cbar = f.colorbar(im, ax=ax)
+            #ax.set_ylabel('h step')
+            #ax.set_xlabel('f chan')
+            #ax.set_title(dataset_ID + ', ' + model_ID + ', input gate & stimuli correlation')
+            ax.xaxis.set_tick_params(labelcolor='none')
+            ax.yaxis.set_tick_params(labelcolor='none')
+            
+            corr_stims = model_corr_stims[mode_lamb][gate_key]
+            
+            open_gate_idxs = np.argwhere(corr_stims == 1.5)
+            
+            for idx in range(np.size(open_gate_idxs, 0)):
+                corr_stims[open_gate_idxs[idx][0], open_gate_idxs[idx][1]] = np.nan
+            
+            f_av_corr = np.nanmean(corr_stims, 1)
+            h_av_corr = np.nanmean(corr_stims, 0)
+            
+            f, ax = plt.subplots(figsize=(6, 2.5))
+            ax.scatter(np.arange(1, len(f_av_corr)+1 , 1), f_av_corr)
+            ax.set_yticks([0, 0.2, 0.4]) # NS3, NS3 - 0.1
+            #ax.set_yticks([-0.3, 0, 0.3, 0.6]) # NS3_PEG
+            #ax.set_yticks([-0.2, 0, 0.2]) # NS2
+            #ax.set_yticks([0, 0.2]) # NS2 - 0.1
+            #ax.set_ylabel('CC')
+            #ax.set_title(dataset_ID + ', ' + model_ID + ', input gate & stimuli correlation - f averaged')
+            
+            X2 = sm.add_constant(np.arange(1, len(f_av_corr)+1 , 1)) # add bias to independent variable
+            est = sm.OLS(f_av_corr, X2) # Ordinary Least Squares fit
+            est2 = est.fit()
+            a = est2.params[0] # bias
+            b = est2.params[1] # slope
+            # x-sequence for plotting line of best fit
+            xseq = np.linspace(np.min(np.arange(1, len(f_av_corr)+1 , 1))-0.05, 
+                               np.max(np.arange(1, len(f_av_corr)+1 , 1))+0.05, num=100)
+            ax.plot(xseq, a+b*xseq, color='b')
+            ax.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
+            ax.xaxis.set_tick_params(labelcolor='none')
+            ax.yaxis.set_tick_params(labelcolor='none')
+            
+            f, ax = plt.subplots(figsize=(6, 2.5))
+            ax.scatter(np.arange(1, len(h_av_corr)+1 , 1), h_av_corr)
+            ax.set_xticks([1, 4, 7, 10, 13, 16]) # NS3
+            ax.set_yticks([0, 0.2, 0.4]) # NS3, NS3 - 0.1
+            #ax.set_yticks([-0.2, 0, 0.2, 0.4]) # NS3_PEG
+            #ax.set_yticks([-0.4, -0.2, 0, 0.2]) # NS2
+            #ax.set_yticks([-0.2, 0, 0.2]) # NS2 - 0.1
+            #ax.set_ylabel('CC')
+            #ax.set_title(dataset_ID + ', ' + model_ID + ', input gate & stimuli correlation - h averaged')
+            
+            X2 = sm.add_constant(np.arange(1, len(h_av_corr)+1 , 1)) # add bias to independent variable
+            est = sm.OLS(h_av_corr, X2) # Ordinary Least Squares fit
+            est2 = est.fit()
+            a = est2.params[0] # bias
+            b = est2.params[1] # slope
+            # x-sequence for plotting line of best fit
+            xseq = np.linspace(np.min(np.arange(1, len(h_av_corr)+1 , 1))-0.05, 
+                               np.max(np.arange(1, len(h_av_corr)+1 , 1))+0.05, num=100)
+            ax.plot(xseq, a+b*xseq, color='b')
+            ax.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
+            ax.xaxis.set_tick_params(labelcolor='none')
+            ax.yaxis.set_tick_params(labelcolor='none')
+
+        else:
+            f, ax = plt.subplots()
+            ax.scatter(np.arange(len(model_corr_stims[mode_lamb][gate_key])), model_corr_stims[mode_lamb][gate_key])
+            ax.set_ylabel('CC')
+            ax.set_title(dataset_ID + ', ' + model_ID + ', input gate & stimuli correlation')
+            #ax.set_yticks([-0.5, -0.25, 0, 0.25, 0.5, 0.75]) # NS3
+            #ax.set_yticks([-0.8, -0.4, 0, 0.4, 0.8]) # NS3_PEG
+            #ax.set_yticks([-0.8, -0.4, 0, 0.4]) # NS2
+            #ax.xaxis.set_tick_params(labelcolor='none')
+            #ax.yaxis.set_tick_params(labelcolor='none')
+            ax.spines[['right', 'top']].set_visible(False)
