@@ -123,10 +123,6 @@ elif dataset_ID == 'NS3_PEG':
     stimuli['training_stimuli'] = [[1, 4, 12, 2, 5, 6, 13] + list(range(np.size(single_rep_cochleagrams, 2)))]
 
 test_stimuli = [test_stimuli + stimuli['validation_stimuli'][0]][0]
-if dataset_ID == 'NS2_include_single' or dataset_ID == 'NS3':
-    cv_stimuli = [0, 1, 4, 16, 10, 12, 15]
-elif dataset_ID == 'NS3_PEG':
-    cv_stimuli = [1, 4, 12, 2, 5, 6, 13]
 
 # mean and std of CV set - if zero-padded, exclude padding_bins from the calculation
 if zero_padding:
