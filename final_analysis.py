@@ -9,15 +9,9 @@ import matplotlib.pyplot as plt
 
 from util_funcs import train_val_test_split, build_grid_NS2_include_single_NS3_concat
 
-from analysis_funcs import corr_with_stims, corr_with_stims_silence, corr_with_stims_silence_by_stim, \
-    corr_with_stims_sound, stims_revcorr, effective_HUs, corr_with_HUs, corr_with_gates, corr_with_t_gate, \
-        weight_sparsity, gate_weights, any_CC_norms, corr_with_ON_OFF_stims, multi_analysis_scatter, \
-            multi_analysis_stim_only, rcLSTM_weight_share, rcLSTM_weighted_output, count_params, calc_se_median
-from plot_funcs import plot_corr_stims, plot_corr_stims_silence_or_sound, plot_gate_kernels, plot_corr_HUs, \
-    plot_corr_gates, plot_weight_sparsity, plot_gate_weights, plot_repetitiveness, comparisons, plot_neurons, \
-        plot_loss_curves, depth_sw_analysis, depth_sw_sess_analysis, depth_cell_analysis, depth_t_gate_analysis, \
-            depth_gates_analysis, depth_gatesmodels_analysis, depth_silence_analysis, depth_ON_OFF_analysis, \
-                depth_rcLSTM_analysis
+from analysis_funcs import any_CC_norms, multi_analysis_scatter, multi_analysis_stim_only, count_params, \
+    compare_lowpass_LN, HU_tonotopy_FRMs, depth_sw_stats, param_match_compare, count_rcLSTM_params, t_corr_stim_resp
+from plot_funcs import comparisons, plot_neurons, depth_sw_analysis, spont_FR_analysis, plot_param_count, plot_t_corr
 
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -45,29 +39,23 @@ built_data = {}
 
 best_lambdas = {}
 
-corr_stims = {}
-corr_stims_silence = {}
-corr_stims_sound = {}
-corr_ON_OFF_stims = {}
-
-gate_kernels = {} 
-
-eff_HUs = {}
-
-corr_HUs = {}
-corr_gates = {}
-
-sparse_out_weights = {}
-
-gates_weights = {}
-
 param_count = {}
-se_median = {}
+
+t_corr_resps = {}
+t_corr_stims = {}
 
 depths = {}
 depth_axis = {}
 CCnorm_depth_diff = {}
 CCnorm_depth_diff_se = {}
+
+sws = {}
+sw_axis = {}
+CCnorm_sw_diff = {}
+CCnorm_sw_diff_se = {}
+
+param_match_ttests = {}
+param_match_ranktests = {}
 
 for dataset_ID in datasets:
     print(dataset_ID)
@@ -82,27 +70,10 @@ for dataset_ID in datasets:
     
     models_best_lambdas = {}
     
-    models_corr_stims = {}
-    models_corr_stims_silence = {}
-    models_corr_stims_sound = {}
-    models_corr_ON_OFF_stims = {}
-    
-    models_any_ccnorms = {}
-    
-    models_gate_kernels = {}
-    
-    models_eff_HUs = {}
-    
-    models_corr_HUs = {}
-    models_corr_gates = {}
-    
-    models_sparse_out_weights = {}
-    
-    models_gates_weights = {}
-    rcLSTM_weights = {}
-    
     models_param_count = {}
-    models_se_median = {}
+    
+    models_t_corr_resps = {}
+    models_t_corr_stims = {}
     
     for model_ID in models:
         print(model_ID)
@@ -240,53 +211,8 @@ for dataset_ID in datasets:
                            'multi_resp': resp_dataset}
         models_built_data[model_ID] = [built_data_dict, stimuli, folds, [mean_cv, std_cv], params]
         
-        # correlation between stimuli and responses
-        '''models_corr_stims[model_ID] = corr_with_stims('pearson', 'average_stim', n_neurons, stim_dataset, test_resp_dataset, 
-                                                      stimuli['test_stimuli'], zero_padding, padding_bins, n_F, 1)'''
-     
-        # correlation between silence-triggered stimuli and responses
-        # uncomment for SDRM measured on the whole dataset, including single-repeat data
-        '''stim_size = int(test_stim_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        resp_size = int(test_resp_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        all_resp_dataset = torch.cat((test_resp_dataset, train_resp_dataset), dim=2)
-        all_stimuli = [stimuli['test_stimuli'][0] + stimuli['training_stimuli'][0][:7] + list(np.arange(18, 299))]
-        stim_dataset = np.concatenate((multi_rep_cochleagrams, single_rep_cochleagrams), axis=2)
-        models_corr_stims_silence[model_ID] = corr_with_stims_silence('pearson', 'average_stim', n_neurons, stim_dataset, 
-                                                                      all_resp_dataset, all_stimuli, 
-                                                                      models_fits_dict[model_ID], zero_padding, padding_bins, 
-                                                                      n_F, 1)'''
         
-        # uncomment for SDRM measured on the whole multi-repeat dataset (including 7 sounds used in training)
-        '''stim_size = int(test_stim_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        resp_size = int(test_resp_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        all_multi_stim_dataset = torch.cat((test_stim_dataset, train_stim_dataset[:, :, :, :7*stim_size]), dim=3)
-        all_multi_resp_dataset = torch.cat((test_resp_dataset, train_resp_dataset[:, :, :7*resp_size]), dim=2)
-        all_multi_stimuli = [stimuli['test_stimuli'][0] + stimuli['training_stimuli'][0][:7]]
-        models_corr_stims_silence[model_ID] = corr_with_stims_silence('pearson', 'average_stim', n_neurons, stim_dataset, 
-                                                                      all_multi_resp_dataset, all_multi_stimuli, 
-                                                                      models_fits_dict[model_ID], zero_padding, padding_bins, 
-                                                                      n_F, 1)'''
-        
-        # uncomment for SDRM measured on the test set only (either val+test or test only) 
-        '''models_corr_stims_silence[model_ID] = corr_with_stims_silence('pearson', 'average_stim', n_neurons, stim_dataset, 
-                                                                      test_resp_dataset, stimuli['test_stimuli'], 
-                                                                      models_fits_dict[model_ID], zero_padding, padding_bins, 
-                                                                      n_F, 1)'''
-        
-        # uncomment for SDRM measured only on the stimuli with the n highest SDRMs when measured separately        
-        '''stim_size = int(test_stim_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        resp_size = int(test_resp_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        all_multi_stim_dataset = torch.cat((test_stim_dataset, train_stim_dataset[:, :, :, :7*stim_size]), dim=3)
-        all_multi_resp_dataset = torch.cat((test_resp_dataset, train_resp_dataset[:, :, :7*resp_size]), dim=2)
-        all_multi_stimuli = [stimuli['test_stimuli'][0] + stimuli['training_stimuli'][0][:7]]
-        n = 4
-        models_corr_stims_silence[model_ID], stims_used = corr_with_stims_silence_by_stim('pearson', 'average_CC', n, 
-                                                                                          n_neurons, stim_dataset, 
-                                                                                          all_multi_resp_dataset, 
-                                                                                          all_multi_stimuli, zero_padding, 
-                                                                                          padding_bins, n_F, 1)
-        
-        CCnorms = any_CC_norms('together', 'CC_norm', all_multi_stim_dataset, all_multi_resp_dataset, stim_dataset, 
+        '''CCnorms = any_CC_norms('together', 'CC_norm', all_multi_stim_dataset, all_multi_resp_dataset, stim_dataset, 
                                resp_dataset, stims_used, models_fits_dict[model_ID], models_built_data, all_multi_stimuli, 
                                models_best_lambdas, n_neurons, model_ID, 0)
         models_any_ccnorms[model_ID] = [[], [], CCnorms] # adding two empty lists for compatibility with other functions'''
@@ -322,77 +248,30 @@ for dataset_ID in datasets:
                                n_neurons, model_ID, 0)
         models_any_ccnorms[model_ID] = [[], [], CCraws]'''
         
-        # correlation between sound-triggered stimuli and responses
-        '''models_corr_stims_sound[model_ID] = corr_with_stims_sound('pearson', 'average_stim', n_neurons, stim_dataset, 
-                                                                  test_resp_dataset, stimuli['test_stimuli'], zero_padding, 
-                                                                  padding_bins, n_F, 1)'''
-        
-        # reverse correlation on stimuli
-        '''models_gate_kernels[model_ID] = stims_revcorr(n_neurons, test_stim_dataset, test_resp_dataset, 
-                                                      stimuli['test_stimuli'], models_fits_dict[model_ID], model_ID, 1)'''
-        
-        # effective hidden units
-        '''models_eff_HUs[model_ID] = effective_HUs(n_neurons, test_stim_dataset, models_fits_dict[model_ID], model_ID, 1)'''
-
-        # correlation between model predictions and hidden unit output
-        '''models_corr_HUs[model_ID] = corr_with_HUs('c', n_neurons, test_stim_dataset, test_resp_dataset, 
-                                                  models_fits_dict[model_ID], model_ID, 1)'''
-        
-        # correlation between model predictions and gates' activity (with either CCraw or CCnorm)
-        '''stim_size = int(test_stim_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        resp_size = int(test_resp_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        all_multi_stim_dataset = torch.cat((test_stim_dataset, train_stim_dataset[:, :, :, :7*stim_size]), dim=3)
-        all_multi_resp_dataset = torch.cat((test_resp_dataset, train_resp_dataset[:, :, :7*resp_size]), dim=2)
-        all_multi_stimuli = [stimuli['test_stimuli'][0] + stimuli['training_stimuli'][0][:7]]
-        models_corr_gates[model_ID] = corr_with_gates('CCraw', n_neurons, all_multi_stim_dataset, all_multi_resp_dataset, 
-                                                      stim_dataset, resp_dataset, all_multi_stimuli, 
-                                                      models_fits_dict[model_ID], models_built_data, model_ID, 1, 0)'''
-        
-        '''models_corr_gates[model_ID] = corr_with_gates('CCnorm', n_neurons, test_stim_dataset, test_resp_dataset, 
-                                                      stim_dataset, resp_dataset, stimuli['test_stimuli'], 
-                                                      models_fits_dict[model_ID], models_built_data, model_ID, 1, 0)'''
-    
-        # correlation between PSTHs and input gate (f-LSTM) activity
-        '''models_corr_gates[model_ID] = corr_with_t_gate('CCraw', n_neurons, test_stim_dataset, test_resp_dataset, 
-                                                       stim_dataset, resp_dataset, stimuli['test_stimuli'], 
-                                                       models_fits_dict[model_ID], models_built_data, model_ID, 1, 0)'''
-        
-        # output weight sparsity
-        '''models_sparse_out_weights[model_ID] = weight_sparsity(n_neurons, models_fits_dict[model_ID], model_ID, 1)'''
-    
-        # distribution of weights coming from gates in "gates" models
-        '''models_gates_weights[model_ID] = gate_weights(n_neurons, val_stim_dataset, val_resp_dataset, 
-                                                      models_fits_dict[model_ID], model_ID, folds, models_best_lambdas)'''
-        
-        # sudden changes correlation
-        '''models_corr_ON_OFF_stims[model_ID] = corr_with_ON_OFF_stims('pearson', 'average_stim', n_neurons, stim_dataset, 
-                                                                    test_resp_dataset, stimuli['test_stimuli'], 
-                                                                    models_fits_dict[model_ID], zero_padding, 
-                                                                    padding_bins, n_F, 1)'''
-    
-        # direct-rcLSTM weights from added fc layer vs from subLSTM layer
-        '''rcLSTM_weights[model_ID] = rcLSTM_weight_share(n_neurons, val_stim_dataset, val_resp_dataset, 
-                                                       models_fits_dict[model_ID], model_ID, folds, models_best_lambdas)'''
-        
-        # direct-rcLSTM weights from added fc layer vs from subLSTM layer
-        '''rcLSTM_weights[model_ID] = rcLSTM_weighted_output(n_neurons, test_stim_dataset, test_resp_dataset, 
-                                                          models_fits_dict[model_ID], model_ID, folds, models_best_lambdas)'''
-    
-        # uncomment to plot example neurons for all 18 multi-repeat stimuli
-        '''stim_size = int(test_stim_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        resp_size = int(test_resp_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
-        models_built_data[model_ID][0]['test_stim'] = \
-            torch.cat((test_stim_dataset, train_stim_dataset[:, :, :, :7*stim_size]), dim=3)
-        models_built_data[model_ID][0]['test_resp'] = \
-            torch.cat((test_resp_dataset, train_resp_dataset[:, :, :7*resp_size]), dim=2)
-        models_built_data[model_ID][1]['test_stimuli'] = [stimuli['test_stimuli'][0] + stimuli['training_stimuli'][0][:7]]'''
-        
         # get parameter counts for each model
-        '''models_param_count[model_ID] = count_params(models_fits_dict[model_ID])'''
+        '''models_param_count[model_ID] = count_params(models_fits_dict[model_ID])
+        # stats comparing f-LSTM to parameter-matched CNNs
+        if model_ID == 'pop_f_LSTM' or (model_ID == 'twoD_CNN' and dataset_ID == 'NS3') or \
+            (model_ID == 'oneD_CNN' and dataset_ID == 'NS3_PEG') or \
+                (model_ID == 'twoD_CNN' and dataset_ID == 'NS2_include_single'): 
+                    pm_ttest, pm_ranktest, pm_results, pm_num = param_match_compare(models_results_dict, model_ID, 
+                                                                                    dataset_ID, nr_dict)'''
         
-        # get variance (standard error) of median
-        '''models_se_median[model_ID] = calc_se_median(models_results_dict[model_ID])'''
-    
+        # check tonotopic structure of HU projections to input gate in f-LSTM
+        '''HU_tonotopy_FRMs(models_fits_dict, model_ID, dataset_ID, f_range, True, params, True, False, 2, False)'''
+        
+        # correlation of f-LSTM input gate with stimuli and PSTHs
+        all_stim_dataset = torch.cat((test_stim_dataset, train_stim_dataset), dim=3)
+        all_resp_dataset = torch.cat((test_resp_dataset, train_resp_dataset), dim=2)
+        '''models_t_corr_resps[model_ID], models_t_corr_stims[model_ID] = t_corr_stim_resp(n_neurons, all_stim_dataset, 
+                                                                                        all_resp_dataset,
+                                                                                        models_fits_dict[model_ID], 
+                                                                                        models_best_lambdas, model_ID, 1, 0,
+                                                                                        dataset_ID, av_f=False, 
+                                                                                        pre_act=False, all_f=True, 
+                                                                                        stim_abs=False, only_active=True)'''
+        
+
     results_dict[dataset_ID] = models_results_dict
     
     bl_av_results_dict[dataset_ID] = models_bl_av_results_dict
@@ -403,53 +282,6 @@ for dataset_ID in datasets:
     
     best_lambdas[dataset_ID] = models_best_lambdas
     
-    corr_stims[dataset_ID] = models_corr_stims
-    '''neurons_list = plot_corr_stims('CCnorm_diff', models_corr_stims, models_results_dict, noise_ratios, dataset_ID, models)'''
-    
-    corr_stims_silence[dataset_ID] = models_corr_stims_silence
-    '''neurons_list, models_neuron_list = plot_corr_stims_silence_or_sound('CCnorm_diff', models_corr_stims_silence, 
-                                                                        models_results_dict, noise_ratios, dataset_ID, 
-                                                                        models)'''
-    
-    '''neurons_list, models_neuron_list = plot_corr_stims_silence_or_sound('CCnorm_diff', models_corr_stims_silence, 
-                                                                        models_any_ccnorms, noise_ratios, dataset_ID, 
-                                                                        models)'''
-    
-    corr_stims_sound[dataset_ID] = models_corr_stims_sound
-    '''neurons_list, models_neuron_list = plot_corr_stims_silence_or_sound('CCnorm_diff', models_corr_stims_sound, 
-                                                                        models_results_dict, noise_ratios, dataset_ID, 
-                                                                        models)'''
-    
-    gate_kernels[dataset_ID] = models_gate_kernels
-    '''plot_gate_kernels('CCnorm_diff', models_gate_kernels, models_eff_HUs, models_results_dict, models_fits_dict, 
-                      best_lambdas, noise_ratios, dataset_ID, models)'''
-    
-    eff_HUs[dataset_ID] = models_eff_HUs
-    
-    corr_HUs[dataset_ID] = models_corr_HUs
-    '''models_neuron_list = plot_corr_HUs('CCnorm_diff', models_corr_HUs, models_eff_HUs, models_results_dict, models_fits_dict, 
-                                       n_neurons, best_lambdas, noise_ratios, dataset_ID, models)'''
-    
-    corr_gates[dataset_ID] = models_corr_gates
-    '''models_neuron_list = plot_corr_gates('CCnorm_diff', models_corr_gates, models_eff_HUs, models_results_dict, 
-                                         models_fits_dict, n_neurons, best_lambdas, noise_ratios, dataset_ID, models)'''
-    
-    sparse_out_weights[dataset_ID] = models_sparse_out_weights
-    '''plot_weight_sparsity('CCnorm_diff', models_sparse_out_weights, models_eff_HUs, models_results_dict, models_fits_dict, 
-                         n_neurons, best_lambdas, noise_ratios, dataset_ID, models)'''
-    
-    gates_weights[dataset_ID] = models_gates_weights
-    '''plot_gate_weights('CCnorm_diff', models_gates_weights, models_eff_HUs, models_results_dict, models_fits_dict, n_neurons, 
-                      best_lambdas, noise_ratios, dataset_ID, models)'''
-    
-    '''plot_repetitiveness('CCnorm_diff', models_any_ccnorms, stims_used, stim_dataset, padding_bins, n_neurons, dataset_ID, 
-                        models)'''
-    
-    corr_ON_OFF_stims[dataset_ID] = models_corr_ON_OFF_stims
-    '''neurons_list, models_neuron_list = plot_corr_stims_silence_or_sound('CCnorm_diff', models_corr_ON_OFF_stims, 
-                                                                        models_results_dict, noise_ratios, dataset_ID,
-                                                                        models)'''
-    
     # Multi-analysis with all data
     '''CC_diff_dict, CC_diff_pvalues, reg_model = multi_analysis_scatter('CC_diff', models_any_ccnorms, stims_used, 
                                                                       stim_dataset, padding_bins, zero_padding, n_neurons, 
@@ -458,39 +290,48 @@ for dataset_ID in datasets:
     # Just analysis measures, no correlation with CCnorm/CCraw
     '''sil_dur, sud_cha, av_amp = multi_analysis_stim_only(stim_dataset, stims_used, padding_bins, zero_padding, t_axis)'''
     
-    # Depth analyses
-    '''neuron_depths, depth_ax, depth_CCnorm_diffs, depth_CCnorm_diffs_se, depth_CCnorms, layers = \
-        depth_sw_analysis('CCnorm_diff', models_results_dict, models_built_data, dataset_ID, models)
+    # Depth and sw analyses
+    '''neuron_depths, depth_ax, depth_CCnorm_diffs, depth_CCnorm_diffs_se, neuron_sws, sw_ax, sw_CCnorm_diffs, \
+        sw_CCnorm_diffs_se, depth_sw_CCnorms, layers = \
+            depth_sw_analysis('CCnorm_diff', models_results_dict, models_built_data, dataset_ID, models, plot_sw=True)
     depths[dataset_ID] = neuron_depths
     depth_axis[dataset_ID] = depth_ax
     CCnorm_depth_diff[dataset_ID] = depth_CCnorm_diffs
-    CCnorm_depth_diff_se[dataset_ID] = depth_CCnorm_diffs_se'''
+    CCnorm_depth_diff_se[dataset_ID] = depth_CCnorm_diffs_se
+    sws[dataset_ID] = neuron_sws
+    sw_axis[dataset_ID] = sw_ax
+    CCnorm_sw_diff[dataset_ID] = sw_CCnorm_diffs
+    CCnorm_sw_diff_se[dataset_ID] = sw_CCnorm_diffs_se
     
-    '''depth_sw_sess_analysis('CCnorm_diff', models_results_dict, models_built_data, dataset_ID, models)'''
+    # Model vs other model depth and SW t-tests
+    depth_diff_ttest, sw_diff_ttest = depth_sw_stats(models, layers, sws, depth_sw_CCnorms, dataset_ID, sw_stats=True)'''
     
-    '''depth_cell_analysis('CCnorm_diff', 'Eff', models_corr_HUs, models_eff_HUs, models_fits_dict, models_built_data, 
-                           best_lambdas, dataset_ID, models)'''
+    # Parameter count analyses
+    '''models_results_dict.update(pm_results)
+    models_param_count.update(pm_num)
+    param_count[dataset_ID] = models_param_count
+    if dataset_ID == 'NS3' or dataset_ID == 'NS2_include_single':
+        rc_LSTM_param_count, rc_LSTM_performance = count_rcLSTM_params(dataset_ID)
+    else:
+        rc_LSTM_param_count = []
+        rc_LSTM_performance = []
     
-    '''depth_t_gate_analysis('CCnorm_diff', models_corr_gates, models_fits_dict, models_built_data, best_lambdas, dataset_ID, 
-                             models)'''
+    plot_param_count(models_param_count, rc_LSTM_param_count, models_results_dict, rc_LSTM_performance, dataset_ID)
     
-    '''depth_gates_analysis('CCnorm_diff', 'Eff', models_corr_gates, models_eff_HUs, models_fits_dict, models_built_data, 
-                            best_lambdas, dataset_ID, models)'''
+    param_match_ttests[dataset_ID] = pm_ttest
+    param_match_ranktests[dataset_ID] = pm_ranktest'''
     
-    '''depth_gatesmodels_analysis('CCnorm_diff', 'All', models_gates_weights, models_eff_HUs, models_fits_dict, 
-                            models_built_data, best_lambdas, dataset_ID, models)'''
+    # Spontaneous firing rate analysis
+    '''spont_FR_analysis(models_results_dict, dataset_ID, params)'''
     
-    '''depth_silence_analysis(models_corr_stims_silence, models_built_data, dataset_ID, models)'''
+    # Lowpass-LN analysis
+    '''lowpass_ranktest = compare_lowpass_LN(models_results_dict, dataset_ID, params)'''
     
-    '''depth_ON_OFF_analysis(models_corr_ON_OFF_stims, models_built_data, dataset_ID, models)'''
-    
-    '''depth_rcLSTM_analysis(rcLSTM_weights, models_fits_dict, models_built_data, best_lambdas, dataset_ID, models)'''
-    
-    # Models' parameter counts
-    '''param_count[dataset_ID] = models_param_count'''
-    
-    # Standard error of median calculation
-    '''se_median[dataset_ID] = models_se_median'''
+    # Correlation of f-LSTM input gate with stims and resps
+    t_corr_resps[dataset_ID] = models_t_corr_resps
+    t_corr_stims[dataset_ID] = models_t_corr_stims
+    '''plot_t_corr(models_t_corr_resps, models_t_corr_stims, n_neurons, best_lambdas, dataset_ID, models, pre_act=False, 
+                all_f=True)'''
 
 # Neuron by neuron comparisons
 '''m_i_n_dict, l_i_n_dict, ttest_dict, ranktest_dict, nr_corr_dict, prop_better_dict = comparisons(datasets, models, 
@@ -527,77 +368,3 @@ for dataset in datasets:
             
     ttest_dict[dataset] = models_ttest_dict
     ranktest_dict[dataset] = models_ranktest_dict'''
-
-# Depth histogram and distribution
-'''bin_edges_1 = np.arange(-1200, 900, 100)
-bin_edges_2 = np.arange(-700, 700, 100)
-
-color_rgba1 = list(matplotlib.colors.to_rgba('#C20078'))
-color_rgba1[3] = 0.5
-color_rgba1 = tuple(color_rgba1)
-color_rgba2 = list(matplotlib.colors.to_rgba('#054907'))
-color_rgba2[3] = 0.5
-color_rgba2 = tuple(color_rgba2)
-
-f, ax = plt.subplots()
-hist1 = ax.hist(depths['NS3'], bin_edges_1, histtype='step', edgecolor='#C20078', label='NS3', linewidth=3, fill=True,
-                facecolor=color_rgba1)
-hist2 = ax.hist(depths['NS2_include_single'], bin_edges_2, histtype='step', edgecolor='#054907', label='NS2_include_single',
-                linewidth=3, fill=True, facecolor=color_rgba2)
-#ax.set_xlabel('depth')
-#ax.legend()
-ax.spines[['top', 'right']].set_visible(False)
-
-ax.set_xticks([-1000, -500, 0, 500])
-ax.xaxis.set_tick_params(labelcolor='none')
-ax.yaxis.set_tick_params(labelcolor='none')'''
-
-'''NS3_percent_count = hist1[0]/191*100
-NS2_percent_count = hist2[0]/72*100
-
-NS3_bins = (hist1[1][:-1] + hist1[1][1:])/2
-NS2_bins = (hist2[1][:-1] + hist2[1][1:])/2
-
-f, ax = plt.subplots()
-ax.plot(NS3_bins, NS3_percent_count, linewidth=3, color='#C20078')
-ax.fill_between(NS3_bins, NS3_percent_count, alpha=0.2, color='#C20078')
-ax.plot(NS2_bins, NS2_percent_count, linewidth=3, color='#054907')
-ax.fill_between(NS2_bins, NS2_percent_count, alpha=0.2, color='#054907')
-#ax.set_xlabel('depth')
-ax.spines[['top', 'right']].set_visible(False)
-
-ax.set_xticks([-1000, -500, 0, 500])
-#ax.xaxis.set_tick_params(labelcolor='none')
-#ax.yaxis.set_tick_params(labelcolor='none')'''
-
-'''NS3_depth_axis = depth_axis['NS3']['pop_t_subLSTM vs twoD_CNN']
-CCnorm_NS3 = CCnorm_depth_diff['NS3']['pop_t_subLSTM vs twoD_CNN']
-CCnorm_se_NS3 = CCnorm_depth_diff_se['NS3']['pop_t_subLSTM vs twoD_CNN']
-
-NS2_depth_axis = depth_axis['NS2_include_single']['pop_t_subLSTM vs twoD_CNN']
-CCnorm_NS2 = CCnorm_depth_diff['NS2_include_single']['pop_t_subLSTM vs twoD_CNN']
-CCnorm_se_NS2 = CCnorm_depth_diff_se['NS2_include_single']['pop_t_subLSTM vs twoD_CNN']
-
-f, ax = plt.subplots()
-ax.plot(NS3_depth_axis, CCnorm_NS3, linewidth=3, label='NS3', color='#C20078')
-ax.fill_between(NS3_depth_axis, CCnorm_NS3-CCnorm_se_NS3, CCnorm_NS3+CCnorm_se_NS3, color='#C20078', alpha=0.2)
-ax.plot(NS2_depth_axis, CCnorm_NS2, linewidth=3, label='NS2', color='#054907')
-ax.fill_between(NS2_depth_axis, CCnorm_NS2-CCnorm_se_NS2, CCnorm_NS2+CCnorm_se_NS2, color='#054907', alpha=0.2)
-#ax.legend()
-
-ax.set_yticks([-0.1, -0.05, 0, 0.05])
-ax.set_xticks(np.arange(-600, 600, 200))
-ax.spines[['right', 'top']].set_visible(False)
-#ax.xaxis.set_tick_params(labelcolor='none')
-#ax.yaxis.set_tick_params(labelcolor='none')'''
-
-# Difference depth t-tests
-'''ccnorm_diffs = {'13': [], '44': [], '56': []}
-
-for nID in range(len(layers)):
-    ccnorm_diffs[layers[nID]].append(depth_CCnorms[models[0]][nID] - depth_CCnorms[models[1]][nID])
-            
-ccnorm_diffs_1 = {'234': ccnorm_diffs['13'] + ccnorm_diffs['44'], '56': ccnorm_diffs['56']}
-
-diff_ttest_1 = scipy.stats.ttest_ind(ccnorm_diffs_1['56'], ccnorm_diffs_1['234'])[:]
-diff_ranktest_1 = scipy.stats.mannwhitneyu(ccnorm_diffs_1['56'], ccnorm_diffs_1['234'])[:]'''
