@@ -5,7 +5,7 @@ import numpy as np
 n_HUs = [32, 64, 128, 256, 512]
 
 model = 'pop_rc_LSTM'
-dataset = 'NS2_include_single'
+dataset = 'NS2'
 
 ttest_dict = {}
 ranktest_dict = {}

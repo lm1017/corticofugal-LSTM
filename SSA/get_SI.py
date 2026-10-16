@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 
-dataset_ID = 'NS3'
+dataset_ID = 'NAT4_A1'
 model_ID = 'pop_f_LSTM'
 
 protocol = 'oddball'

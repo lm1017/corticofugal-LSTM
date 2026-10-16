@@ -8,7 +8,7 @@ import all_models
 import itertools
 import pickle
 
-from util_funcs import extents, redblue, build_grid_NS2_include_single_NS3_concat
+from util_funcs import extents, redblue, build_grid_concat
 
 def plot_corr_stims(ccnorms_change_measure, models_ccs_with_stim, models_results_dict, noise_ratios, dataset_ID, models):
     '''
@@ -1229,8 +1229,8 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
     
     colours = {'twoD_CNN': 'teal', 'oneD_CNN': 'teal', 'pop_f_LSTM': 'salmon', 'pop_rc_LSTM': 'salmon'}
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -1267,7 +1267,7 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
     win_size = 200 # depth averaging window size, in microns
     
     # uncomment for plots with NS2 range
-    '''if dataset_ID == 'NS3' or dataset_ID == 'NS3_PEG':
+    '''if dataset_ID == 'NAT4_A1' or dataset_ID == 'NAT4_PEG':
         small_depths = np.where(np.array(neuron_depths) < -700)[0]
         large_depths = np.where(np.array(neuron_depths) > 600)[0]
         extra_depths = np.concatenate((small_depths, large_depths))
@@ -1493,12 +1493,12 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
             #ax1.set_title(dataset_ID + ' - ' + i_model_ID)
             ax1.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
             
-            ax1.set_xticks([-750, -500, -250, 0, 250, 500, 750]) # NS3-PEG, NS3
+            ax1.set_xticks([-750, -500, -250, 0, 250, 500, 750]) # NAT4_PEG, NAT4_A1
             #ax1.set_yticks([0.4, 0.5, 0.6, 0.7, 0.8]) # NS2
-            #ax1.set_yticks([0.5, 0.55, 0.6, 0.65, 0.7]) # NS3, NS2 range
-            #ax1.set_yticks([0.45, 0.55, 0.65, 0.75]) # NS3
-            #ax1.set_yticks([0.45, 0.5, 0.55, 0.6, 0.65]) # NS3-PEG, NS2 range
-            ax1.set_yticks([0.35, 0.45, 0.55, 0.65, 0.75]) # NS3-PEG
+            #ax1.set_yticks([0.5, 0.55, 0.6, 0.65, 0.7]) # NAT4_A1, NS2 range
+            #ax1.set_yticks([0.45, 0.55, 0.65, 0.75]) # NAT4_A1
+            #ax1.set_yticks([0.45, 0.5, 0.55, 0.6, 0.65]) # NAT4-PEG, NS2 range
+            ax1.set_yticks([0.35, 0.45, 0.55, 0.65, 0.75]) # NAT4-PEG
             #ax1.set_xticks(np.arange(-750, 1000, 250))
             ax1.xaxis.set_tick_params(labelcolor='none')
             ax1.yaxis.set_tick_params(labelcolor='none')
@@ -1542,8 +1542,8 @@ def depth_sw_analysis(ccnorms_change_measure, models_results_dict, models_built_
                 #ax2.set_ylabel('CCnorm')
                 #ax2.set_title(dataset_ID + ' - ' + i_model_ID)
                 ax2.spines[['right', 'top']].set_visible(False) # set top and right plot axes to invisible (prevents box layout)
-                #ax2.set_yticks([0.55, 0.65, 0.75]) # NS3, NS2
-                ax2.set_yticks([0.5, 0.6, 0.7]) # NS3-PEG
+                #ax2.set_yticks([0.55, 0.65, 0.75]) # NAT4_A1, NS2
+                ax2.set_yticks([0.5, 0.6, 0.7]) # NAT4-PEG
                 ax2.set_xticks([0.2, 0.4, 0.6, 0.8])
                 ax2.xaxis.set_tick_params(labelcolor='none')
                 ax2.yaxis.set_tick_params(labelcolor='none')
@@ -1739,8 +1739,8 @@ def depth_sw_sess_analysis(ccnorms_change_measure, models_results_dict, models_b
     plot_mode = 'full'
     exclude_few = ''
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -1980,8 +1980,8 @@ def depth_cell_analysis(ccnorms_change_measure, HU_mode, models_corr_HUs, models
     # define p-value-based colourmap - black indicates non-significance, red indicates significance
     pvalues_cmap = mcolors.ListedColormap(['black', 'red'])
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -2060,7 +2060,7 @@ def depth_cell_analysis(ccnorms_change_measure, HU_mode, models_corr_HUs, models
             i_HU_corr = np.zeros((len(neuron_idxs), i_hidden_size))
         
         for nID in range(len(neuron_idxs)): # loop over neurons
-            # correlations for specific neuron, fold (0, since NS2_include_single and NS3 only have one fold), and the
+            # correlations for specific neuron, fold (0, since NS2 and NAT4_A1 only have one fold), and the
             # neuron's best lambda
             if HU_mode == 'Eff':
                 eff_HUs = i_model_eff_HUs[i_model_best_lambdas[neuron_idxs[nID]]][neuron_idxs[nID]]
@@ -2258,8 +2258,8 @@ def depth_t_gate_analysis(ccnorms_change_measure, models_corr_gates, models_fits
     # define p-value-based colourmap - black indicates non-significance, red indicates significance
     pvalues_cmap = mcolors.ListedColormap(['black', 'red'])
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -2327,7 +2327,7 @@ def depth_t_gate_analysis(ccnorms_change_measure, models_corr_gates, models_fits
         i_t_corr = np.zeros((len(neuron_idxs), i_input_size)) # array to hold correlations for specific fold and best lambda
         
         for nID in range(len(neuron_idxs)): # loop over neurons
-            # correlations for specific neuron, fold (0, since NS2_include_single and NS3 only have one fold), and the
+            # correlations for specific neuron, fold (0, since NS2 and NAT4_A1 only have one fold), and the
             # neuron's best lambda
             i_t_corr[nID, :] = i_model_corr_gates[i_model_best_lambdas[neuron_idxs[nID]]]['t'][neuron_idxs[nID]]
 
@@ -2510,8 +2510,8 @@ def depth_gates_analysis(ccnorms_change_measure, HU_mode, models_corr_gates, mod
     # define p-value-based colourmap - black indicates non-significance, red indicates significance
     pvalues_cmap = mcolors.ListedColormap(['black', 'red'])
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -2608,7 +2608,7 @@ def depth_gates_analysis(ccnorms_change_measure, HU_mode, models_corr_gates, mod
                 i_gate_corr = np.zeros((len(neuron_idxs), i_hidden_size))
             
             for nID in range(len(neuron_idxs)): # loop over neurons
-                # correlations for specific neuron, fold (0, since NS2_include_single and NS3 only have one fold), and the
+                # correlations for specific neuron, fold (0, since NS2 and NAT4_A1 only have one fold), and the
                 # neuron's best lambda
                 if HU_mode == 'Eff':
                     eff_HUs = i_model_eff_HUs[i_model_best_lambdas[neuron_idxs[nID]]][neuron_idxs[nID]]
@@ -2798,8 +2798,8 @@ def depth_gatesmodels_analysis(ccnorms_change_measure, HU_mode, models_gates_wei
     # define p-value-based colourmap - black indicates non-significance, red indicates significance
     pvalues_cmap = mcolors.ListedColormap(['black', 'red'])
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -3025,8 +3025,8 @@ def depth_silence_analysis(models_corr_stims_silence, models_built_data, dataset
     # define p-value-based colourmap - black indicates non-significance, red indicates significance
     pvalues_cmap = mcolors.ListedColormap(['black', 'red'])
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -3151,8 +3151,8 @@ def depth_ON_OFF_analysis(models_corr_ON_OFF_stims, models_built_data, dataset_I
     # define p-value-based colourmap - black indicates non-significance, red indicates significance
     pvalues_cmap = mcolors.ListedColormap(['black', 'red'])
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -3278,8 +3278,8 @@ def depth_rcLSTM_analysis(rcLSTM_weights, models_fits_dict, models_built_data, b
     # define p-value-based colourmap - black indicates non-significance, red indicates significance
     pvalues_cmap = mcolors.ListedColormap(['black', 'red'])
     
-    if dataset_ID == 'NS2_include_single':
-        depth_sw_file = 'Data/NS2_raw/' + dataset_ID + '_depth_sw.pckl'
+    if dataset_ID == 'NS2':
+        depth_sw_file = 'Data/NS2/' + dataset_ID + '_depth_sw.pckl'
     else:
         depth_sw_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_depth_sw.pckl'
     
@@ -3306,7 +3306,7 @@ def depth_rcLSTM_analysis(rcLSTM_weights, models_fits_dict, models_built_data, b
             neuron_idxs.append(n_idx)
     
     # uncomment for plots with NS2 range
-    if dataset_ID == 'NS3' or dataset_ID == 'NS3_PEG':
+    if dataset_ID == 'NAT4_A1' or dataset_ID == 'NAT4_PEG':
         small_depths = np.where(np.array(neuron_depths) < -700)[0]
         large_depths = np.where(np.array(neuron_depths) > 600)[0]
         extra_depths = np.concatenate((small_depths, large_depths))
@@ -3857,10 +3857,10 @@ def fake_parula():
 #############################################################################################################################
 
 def spont_FR_analysis(models_results_dict, dataset_ID, dataset_params):
-    if dataset_ID == 'NS3' or dataset_ID == 'NS3_PEG':
+    if dataset_ID == 'NAT4_A1' or dataset_ID == 'NAT4_PEG':
         spont_file = 'Data/' + dataset_ID + '/' + dataset_ID + '_prebuild_spontaneous.pckl'
-    elif dataset_ID == 'NS2_include_single':
-        spont_file = 'Data/NS2_raw/NS2_prebuild_spontaneous.pckl'
+    elif dataset_ID == 'NS2':
+        spont_file = 'Data/NS2/prebuild_spontaneous.pckl'
 
     f = open(spont_file, 'rb')
     spont_spikes = pickle.load(f)
@@ -3922,11 +3922,11 @@ def spont_FR_analysis(models_results_dict, dataset_ID, dataset_params):
 
                 ax.plot(xseq, a+b*xseq, color='k')
                 ax.spines[['right', 'top']].set_visible(False)
-                #ax.set_xticks([0, 20, 40, 60, 80, 100]) # NS3
-                #ax.set_xticks([0, 10, 20, 30, 40, 50]) # NS3-PEG
+                #ax.set_xticks([0, 20, 40, 60, 80, 100]) # NAT4_A1
+                #ax.set_xticks([0, 10, 20, 30, 40, 50]) # NAT4_PEG
                 ax.set_xticks([0, 10, 20, 30, 40, 50, 60]) # NS2
-                #ax.set_yticks([-0.2, 0, 0.2, 0.4, 0.6]) # NS3
-                #ax.set_yticks([-0.5, -0.25, 0, 0.25, 0.5]) # NS3-PEG
+                #ax.set_yticks([-0.2, 0, 0.2, 0.4, 0.6]) # NAT4_A1
+                #ax.set_yticks([-0.5, -0.25, 0, 0.25, 0.5]) # NAT4_PEG
                 ax.set_yticks([-0.2, 0, 0.2, 0.4]) # NS2
                 ax.xaxis.set_tick_params(labelcolor='none')
                 ax.yaxis.set_tick_params(labelcolor='none')
@@ -3937,7 +3937,7 @@ def spont_FR_analysis(models_results_dict, dataset_ID, dataset_params):
 def plot_param_count(models_param_count, rc_LSTM_param_count, models_results_dict, rc_LSTM_performance, dataset_ID):
     models_med_results = {model_ID: np.nanmedian(models_results_dict[model_ID][2]) for model_ID in models_results_dict}
     
-    if dataset_ID == 'NS3' or dataset_ID == 'NS2_include_single':
+    if dataset_ID == 'NAT4_A1' or dataset_ID == 'NS2':
         models_param_count.update(rc_LSTM_param_count)
         models_med_results.update(rc_LSTM_performance)
     
@@ -3954,7 +3954,7 @@ def plot_param_count(models_param_count, rc_LSTM_param_count, models_results_dic
     #ax.set_xlabel('Parameter count')
     #ax.set_ylabel('Median CCnorm')
     #ax.set_title(dataset_ID)
-    if dataset_ID == 'NS3' or dataset_ID == 'NS2_include_single':
+    if dataset_ID == 'NAT4_A1' or dataset_ID == 'NS2':
         ax.set_xticks([0, 100000, 200000, 300000, 400000, 500000, 600000])
         ax.set_yticks([0.5, 0.6, 0.7])
     else:
@@ -3973,7 +3973,7 @@ def plot_t_corr(t_corr_resps, t_corr_stims, n_neurons, best_lambdas, dataset_ID,
     else:
         gate_key = 't'
     
-    if dataset_ID == 'NS3':
+    if dataset_ID == 'NAT4_A1':
         mode_lamb = 15
     else:
         mode_lamb = 14
@@ -4012,8 +4012,8 @@ def plot_t_corr(t_corr_resps, t_corr_stims, n_neurons, best_lambdas, dataset_ID,
             
             f, ax = plt.subplots(figsize=(6, 2.5))
             ax.scatter(np.arange(1, len(f_av_corr)+1 , 1), f_av_corr)
-            ax.set_yticks([0, 0.2, 0.4]) # NS3, NS3 - 0.1
-            #ax.set_yticks([-0.3, 0, 0.3, 0.6]) # NS3_PEG
+            ax.set_yticks([0, 0.2, 0.4]) # NAT4_A1, NAT4_A1 - 0.1
+            #ax.set_yticks([-0.3, 0, 0.3, 0.6]) # NAT4_PEG
             #ax.set_yticks([-0.2, 0, 0.2]) # NS2
             #ax.set_yticks([0, 0.2]) # NS2 - 0.1
             #ax.set_ylabel('CC')
@@ -4034,9 +4034,9 @@ def plot_t_corr(t_corr_resps, t_corr_stims, n_neurons, best_lambdas, dataset_ID,
             
             f, ax = plt.subplots(figsize=(6, 2.5))
             ax.scatter(np.arange(1, len(h_av_corr)+1 , 1), h_av_corr)
-            ax.set_xticks([1, 4, 7, 10, 13, 16]) # NS3
-            ax.set_yticks([0, 0.2, 0.4]) # NS3, NS3 - 0.1
-            #ax.set_yticks([-0.2, 0, 0.2, 0.4]) # NS3_PEG
+            ax.set_xticks([1, 4, 7, 10, 13, 16]) # NAT4_A1
+            ax.set_yticks([0, 0.2, 0.4]) # NAT4_A1, NAT4_A1 - 0.1
+            #ax.set_yticks([-0.2, 0, 0.2, 0.4]) # NAT4_PEG
             #ax.set_yticks([-0.4, -0.2, 0, 0.2]) # NS2
             #ax.set_yticks([-0.2, 0, 0.2]) # NS2 - 0.1
             #ax.set_ylabel('CC')
@@ -4060,8 +4060,8 @@ def plot_t_corr(t_corr_resps, t_corr_stims, n_neurons, best_lambdas, dataset_ID,
             ax.scatter(np.arange(len(model_corr_stims[mode_lamb][gate_key])), model_corr_stims[mode_lamb][gate_key])
             ax.set_ylabel('CC')
             ax.set_title(dataset_ID + ', ' + model_ID + ', input gate & stimuli correlation')
-            #ax.set_yticks([-0.5, -0.25, 0, 0.25, 0.5, 0.75]) # NS3
-            #ax.set_yticks([-0.8, -0.4, 0, 0.4, 0.8]) # NS3_PEG
+            #ax.set_yticks([-0.5, -0.25, 0, 0.25, 0.5, 0.75]) # NAT4_A1
+            #ax.set_yticks([-0.8, -0.4, 0, 0.4, 0.8]) # NAT4_PEG
             #ax.set_yticks([-0.8, -0.4, 0, 0.4]) # NS2
             #ax.xaxis.set_tick_params(labelcolor='none')
             #ax.yaxis.set_tick_params(labelcolor='none')

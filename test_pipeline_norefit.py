@@ -10,7 +10,7 @@ import torch.nn as nn
 import numpy as np
 import scipy.stats as stats
 
-from util_funcs import train_val_test_split, build_grid_NS2_include_single_NS3_concat
+from util_funcs import train_val_test_split, build_grid_concat
 from train_val_test_loops import val_loop
 
 import all_models
@@ -18,7 +18,7 @@ import all_models
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-dataset_ID = 'NS3_PEG'
+dataset_ID = 'NAT4_PEG'
 model_ID = 'pop_f_LSTM'
 n_F = 8 # number of frequency channels
 n_epochs = 5
@@ -76,8 +76,7 @@ zero_padding = model_meta_info['zero_padding']
 
 # build dataset with specified parameters
 stim_dataset, resp_dataset, params = build_dataset(params, zero_padding)
-# for NS1, NS2: stim_dataset contains all cochleagrams in a NumPy array (dimensions -> (f, t, stimuli));
-# for NS2_include_single, NS3: stim_dataset contains a list with two NumPy arrays, one with multi-repeat cochleagrams, and
+# for NS2, NAT4_A1, NAT4_PEG: stim_dataset contains a list with two NumPy arrays, one with multi-repeat cochleagrams, and
 # one with single-repeat cochleagrams (dimensions -> (f, t, stimuli))
 
 n_neurons = params['n_neurons']
@@ -113,11 +112,11 @@ else:
 folds, test_stimuli, cv_stimuli, validation_stimuli, training_stimuli, stimuli = \
     train_val_test_split(dataset_ID, reduced, single_rep_cochleagrams)
 
-if dataset_ID == 'NS2_include_single' or dataset_ID == 'NS3':
+if dataset_ID == 'NS2' or dataset_ID == 'NAT4_A1':
     folds = 1
     stimuli['validation_stimuli'] = [[6, 3, 13, 7, 17, 9, 5]]
     stimuli['training_stimuli'] = [[0, 1, 4, 16, 10, 12, 15] + list(range(np.size(single_rep_cochleagrams, 2)))]
-elif dataset_ID == 'NS3_PEG':
+elif dataset_ID == 'NAT4_PEG':
     folds = 1
     stimuli['validation_stimuli'] = [[7, 16, 9, 11, 0, 3, 15]]
     stimuli['training_stimuli'] = [[1, 4, 12, 2, 5, 6, 13] + list(range(np.size(single_rep_cochleagrams, 2)))]
@@ -144,7 +143,7 @@ norm = model_meta_info['norm']
 # (PSTHs), multi-repeat spike times, single-repeat spike times
 train_stim_dataset, train_resp_dataset, val_stim_dataset, val_resp_dataset, cv_stim_dataset, cv_resp_dataset, \
     test_stim_dataset, test_resp_dataset, multi_rep_resps, single_rep_resps = \
-        build_grid_NS2_include_single_NS3_concat(single_rep_cochleagrams, multi_rep_cochleagrams, n_neurons, 
+        build_grid_concat(single_rep_cochleagrams, multi_rep_cochleagrams, n_neurons, 
                                                  resp_dataset, stimuli, params, norm, mean_cv, std_cv, clip_bins, 
                                                  shift_bins, type_data, zero_padding, padding_bins, t_axis)
 

@@ -246,7 +246,7 @@ def cochleagram_spec_power(y_t, fs_hz, dt_ms, dataset, zero_padding, padding_bin
         params = {'spacing': spacing,
                   'fs_hz': fs_hz,
                   'threshold': -70}
-    elif dataset == 'NS2' or dataset =='NS2_include_single' or dataset == 'NS3' or dataset == 'NS3_PEG':
+    elif dataset == 'NS2' or dataset == 'NAT4_A1' or dataset == 'NAT4_PEG':
         params = {'spacing': spacing,
                   'fs_hz': fs_hz,
                   'threshold': -70}

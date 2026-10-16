@@ -8,7 +8,7 @@ from tensorize_mod import tensorize_mod
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-dataset_ID = 'NS3'
+dataset_ID = 'NAT4_A1'
 model_ID = 'pop_f_LSTM'
 
 use_mode = False

@@ -5,7 +5,7 @@ from matplotlib.cbook import boxplot_stats
 from SSA_utils import pitman_morgan_test
 from scipy import stats
 
-dataset_ID = 'NS3_PEG'
+dataset_ID = 'NAT4_PEG'
 models = ['pop_f_LSTM', 'oneD_CNN']
 
 start = 'silence'
@@ -62,8 +62,8 @@ if plot_violin:
                alpha=0.1, s=20)
     ax.violinplot([models_SI[models[0]], models_SI[models[1]]], showmeans=True)
     #ax.set_ylabel('SI')
-    ax.set_yticks([0, 0.1, 0.2]) # NS3
-    #ax.set_yticks([-0.1, 0, 0.1]) # NS3-PEG
+    ax.set_yticks([0, 0.1, 0.2]) # NAT4_A1
+    #ax.set_yticks([-0.1, 0, 0.1]) # NAT4_PEG
     #ax.set_yticks([-0.1, 0]) # NS2
     ax.set_xticks([1, 2])
     ax.set_xticklabels(models)

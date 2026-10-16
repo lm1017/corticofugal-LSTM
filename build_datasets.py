@@ -6,7 +6,7 @@ import pickle
 
 #############################################################################################################################
 
-def build_dataset_NS2_include_single(params, zero_padding):
+def build_dataset_NS2(params, zero_padding):
     cochleagram_type = params['cochleagram_type']
     bin_size = params['bin_size']
     n_F = params['n_F']
@@ -14,9 +14,9 @@ def build_dataset_NS2_include_single(params, zero_padding):
     max_F = params['max_F']
     padding_bins = params['padding_bins']
     
-    dataset = 'NS2_include_single'
+    dataset = 'NS2'
     
-    filename = 'Data/NS2_raw/NS2_prebuild.pckl' # pre-built dataset, used to save time
+    filename = 'Data/NS2/prebuild.pckl' # pre-built dataset, used to save time
     f = open(filename, 'rb')
     NS2_prebuild = pickle.load(f)
     f.close()
@@ -231,7 +231,7 @@ def build_dataset_NS2_include_single(params, zero_padding):
 
 #############################################################################################################################
 
-def build_dataset_NS3(params, zero_padding):
+def build_dataset_NAT4_A1(params, zero_padding):
     cochleagram_type = params['cochleagram_type']
     bin_size = params['bin_size']
     n_F = params['n_F']
@@ -239,21 +239,21 @@ def build_dataset_NS3(params, zero_padding):
     max_F = params['max_F']
     padding_bins = params['padding_bins']
     
-    dataset = 'NS3'
+    dataset = 'NAT4_A1'
 
-    filename = 'Data/NS3/NS3_prebuild.pckl' # pre-built dataset, used to save time
+    filename = 'Data/NAT4_A1/prebuild.pckl' # pre-built dataset, used to save time
     f = open(filename, 'rb')
-    NS3_prebuild = pickle.load(f)
+    NAT4_A1_prebuild = pickle.load(f)
     f.close()
 
-    unique_stim_list = NS3_prebuild['unique_stim_list'] # list of IDs of stimuli which will be used
-    unique_stim_occ = NS3_prebuild['unique_stim_occ'] # number of repeats of each stimulus in unique_stim_list
-    sessions = NS3_prebuild['sessions'] # list of session IDs
-    neuron_IDs = NS3_prebuild['neuron_IDs'] # list of neuron IDs, by session
+    unique_stim_list = NAT4_A1_prebuild['unique_stim_list'] # list of IDs of stimuli which will be used
+    unique_stim_occ = NAT4_A1_prebuild['unique_stim_occ'] # number of repeats of each stimulus in unique_stim_list
+    sessions = NAT4_A1_prebuild['sessions'] # list of session IDs
+    neuron_IDs = NAT4_A1_prebuild['neuron_IDs'] # list of neuron IDs, by session
     # list of spike times by session, for each neuron, for each stimulus in chronological order of presentation
-    all_sess_resps = NS3_prebuild['all_sess_resps']
+    all_sess_resps = NAT4_A1_prebuild['all_sess_resps']
     # list of stimulus IDs by session, in chronological order of presentation with repetitions
-    stim_IDs = NS3_prebuild['stim_IDs']
+    stim_IDs = NAT4_A1_prebuild['stim_IDs']
     
     # list of stimuli, within unique_stim_list, presented more than once
     # occurrence == 20 is used as a criteria instead of occurrence > 1, because there are two sounds presented twice;
@@ -452,7 +452,7 @@ def build_dataset_NS3(params, zero_padding):
 
 #############################################################################################################################
 
-def build_dataset_NS3_PEG(params, zero_padding):
+def build_dataset_NAT4_PEG(params, zero_padding):
     cochleagram_type = params['cochleagram_type']
     bin_size = params['bin_size']
     n_F = params['n_F']
@@ -460,21 +460,21 @@ def build_dataset_NS3_PEG(params, zero_padding):
     max_F = params['max_F']
     padding_bins = params['padding_bins']
     
-    dataset = 'NS3_PEG'
+    dataset = 'NAT4_PEG'
 
-    filename = 'Data/NS3_PEG/NS3_PEG_prebuild.pckl' # pre-built dataset, used to save time
+    filename = 'Data/NAT4_PEG/prebuild.pckl' # pre-built dataset, used to save time
     f = open(filename, 'rb')
-    NS3_PEG_prebuild = pickle.load(f)
+    NAT4_PEG_prebuild = pickle.load(f)
     f.close()
 
-    unique_stim_list = NS3_PEG_prebuild['unique_stim_list'] # list of IDs of stimuli which will be used
-    unique_stim_occ = NS3_PEG_prebuild['unique_stim_occ'] # number of repeats of each stimulus in unique_stim_list
-    sessions = NS3_PEG_prebuild['sessions'] # list of session IDs
-    neuron_IDs = NS3_PEG_prebuild['neuron_IDs'] # list of neuron IDs, by session
+    unique_stim_list = NAT4_PEG_prebuild['unique_stim_list'] # list of IDs of stimuli which will be used
+    unique_stim_occ = NAT4_PEG_prebuild['unique_stim_occ'] # number of repeats of each stimulus in unique_stim_list
+    sessions = NAT4_PEG_prebuild['sessions'] # list of session IDs
+    neuron_IDs = NAT4_PEG_prebuild['neuron_IDs'] # list of neuron IDs, by session
     # list of spike times by session, for each neuron, for each stimulus in chronological order of presentation
-    all_sess_resps = NS3_PEG_prebuild['all_sess_resps']
+    all_sess_resps = NAT4_PEG_prebuild['all_sess_resps']
     # list of stimulus IDs by session, in chronological order of presentation with repetitions
-    stim_IDs = NS3_PEG_prebuild['stim_IDs']
+    stim_IDs = NAT4_PEG_prebuild['stim_IDs']
 
     # list of stimuli, within unique_stim_list, presented more than once
     # occurrence == 20 is used as a criteria instead of occurrence > 1, because there are two sounds presented twice;

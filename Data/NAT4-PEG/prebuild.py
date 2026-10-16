@@ -28,7 +28,7 @@ neuron_IDs = []
 stim_IDs = []
 unique_stim_IDs = []
 unique_stim_num = []
-spont_times = []
+stim_times = []
 
 all_sess_resps = []
 for session in sessions:
@@ -41,12 +41,12 @@ for session in sessions:
 
     f = open(meta_file)
     data_nID = json.load(f) # session metadata dict
-
+    
     neuron_IDs.append(data_nID['chans']) # list of neuron IDs from session
     
     ###########
     epoch_file = sess_dir + sess_dir_spec[0] + epoch_ID # full path to session file
-
+    
     with open(epoch_file, 'r') as f:
         reader = csv.DictReader(f)
         data = list(reader) # load session data -> list of dicts with information for each time point in session
@@ -67,17 +67,20 @@ for session in sessions:
     unique_stim_IDs.append(unique_stim_list)
     unique_stim_num.append(unique_stim_occ)
     
-    start_times = []
-    end_times = []
-    
+    pre_stim_end = []
     for i, j in enumerate(name_list):
         if j == 'PreStimSilence':
-            start_times.append(float(data[i]['start'])) # list of end times of pre-stim silence
-            end_times.append(float(data[i]['end'])) # list of start times of post-stim silence
+            pre_stim_end.append(float(data[i]['end'])) # list of end times of pre-stim silence
+            
+    post_stim_start = []
+    for i, j in enumerate(name_list):
+        if j == 'PostStimSilence':
+            post_stim_start.append(float(data[i]['start'])) # list of start times of post-stim silence
     
-    times = list(zip(start_times, end_times)) # list of tuples of start and end times for each stimulus
-    spont_times.append(times) # append stimulus times to list containing all sessions
-
+    times = list(zip(pre_stim_end, post_stim_start)) # list of tuples of start and end times for each stimulus
+    
+    stim_times.append(times) # append stimulus times to list containing all sessions
+    
     ###########
     data_file = sess_dir + sess_dir_spec[0] + data_ID # full path to responses file
     # load stimuli from h5 file
@@ -87,7 +90,7 @@ for session in sessions:
     for key, dataset in data_in.items():
         # response file contains spike times (in seconds) for each neuron over the whole session
         data_dict[key] = np.array(dataset[:])
-
+    
     neuron_spikes = []
     for nID in data_nID['chans']: # loop over neurons in session
         print(nID)
@@ -104,11 +107,12 @@ for session in sessions:
         
         neuron_spikes.append(stim_spikes)
     all_sess_resps.append(neuron_spikes)
-
-NS3_PEG_prebuild_spontaneous = {'sessions': sessions, 'neuron_IDs': neuron_IDs, 'all_sess_resps': all_sess_resps, 
-                                'silence_times': spont_times}
+        
+NAT4_PEG_prebuild = {'unique_stim_list': unique_stim_list, 'unique_stim_occ': unique_stim_occ, 'sessions': sessions, 
+                    'unique_stim_num': unique_stim_num, 'neuron_IDs': neuron_IDs, 'all_sess_resps': all_sess_resps, 
+                    'stim_IDs': stim_IDs}
 
 # save pre-built dataset file
-'''f = open('NS3_PEG_prebuild_spontaneous.pckl', 'wb')
-pickle.dump(NS3_PEG_prebuild_spontaneous, f)
+'''f = open('NAT4_PEG_prebuild.pckl', 'wb')
+pickle.dump(NAT4_PEG_prebuild, f)
 f.close()'''

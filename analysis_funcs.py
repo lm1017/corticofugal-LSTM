@@ -856,7 +856,7 @@ def corr_with_gates(CC_type, n_neurons, stim_dataset, resp_dataset, all_stim_dat
     models_built_data : dictionary containing built datasets for each model
     model_ID : name of model being analysed
     folds : number of cross-validation folds
-    fID : active fold, not useful for NS3 and NS3_PEG, and not useful for test set analyses for any dataset
+    fID : active fold, not useful for NAT4_A1 and NAT4_PEG, and not useful for test set analyses for any dataset
 
     Returns
     -------
@@ -960,7 +960,7 @@ def corr_with_t_gate(CC_type, n_neurons, stim_dataset, resp_dataset, all_stim_da
     models_built_data : dictionary containing built datasets for each model
     model_ID : name of model being analysed
     folds : number of cross-validation folds
-    fID : active fold, not useful for NS3 and NS3_PEG, and not useful for test set analyses for any dataset
+    fID : active fold, not useful for NAT4_A1 and NAT4_PEG, and not useful for test set analyses for any dataset
 
     Returns
     -------
@@ -2580,15 +2580,15 @@ def depth_sw_stats(models, layers, sws, CCnorms, dataset_ID, sw_stats):
 #############################################################################################################################
 
 def param_match_compare(models_results_dict, model_ID, dataset_ID, nr_dict):
-    if dataset_ID == 'NS3':
+    if dataset_ID == 'NAT4_A1':
         CNN_param_match_file = 'Results/Param_matched_CNNs/final_fit_twoD_CNN_' + dataset_ID + '.pckl'
         CNN = 'twoD_CNN'
                 
-    elif dataset_ID == 'NS3_PEG':
+    elif dataset_ID == 'NAT4_PEG':
         CNN_param_match_file = 'Results/Param_matched_CNNs/final_fit_oneD_CNN_' + dataset_ID + '.pckl'
         CNN = 'oneD_CNN'
                 
-    elif dataset_ID == 'NS2_include_single':
+    elif dataset_ID == 'NS2':
         CNN_param_match_file = 'Results/Param_matched_CNNs/final_fit_twoD_CNN_' + dataset_ID + '.pckl'
         CNN = 'twoD_CNN'
         
@@ -2811,7 +2811,7 @@ def t_corr_stim_resp(n_neurons, stim_dataset, resp_dataset, models_fits_dict, mo
     lambda
     model_ID : name of model being analysed
     folds : number of cross-validation folds
-    fID : active fold, not useful for NS3 and NS3_PEG, and not useful for test set analyses for any dataset
+    fID : active fold, not useful for NAT4_A1 and NAT4_PEG, and not useful for test set analyses for any dataset
 
     Returns
     -------
@@ -2828,7 +2828,7 @@ def t_corr_stim_resp(n_neurons, stim_dataset, resp_dataset, models_fits_dict, mo
     neuron_bl = models_best_lambdas[model_ID]
     unique_bl = np.unique(neuron_bl)
     unique_bl = np.array([14, 15])
-    if dataset_ID == 'NS3':
+    if dataset_ID == 'NAT4_A1':
         unique_bl = np.array([15])
     else:
         unique_bl = np.array([14])

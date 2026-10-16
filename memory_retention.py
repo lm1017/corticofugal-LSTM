@@ -3,18 +3,18 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from denseweight import DenseWeight
 
-NS3_whole_av = {'pop_f_LSTM': {'1': 0.657, '0.5': 0.647, '0.25': 0.644, '0.125': 0.628, '0.0625': 0.591, 
+NAT4_A1_whole_av = {'pop_f_LSTM': {'1': 0.657, '0.5': 0.647, '0.25': 0.644, '0.125': 0.628, '0.0625': 0.591, 
                                   '0.03125': 0.521, '0.333': 0.652, '0.111': 0.621, '0.037': 0.559}}
 
-NS3_whole_med = {'pop_f_LSTM': {'1': 0.679, '0.5': 0.658, '0.25': 0.661, '0.125': 0.655, '0.0625': 0.613,
+NAT4_A1_whole_med = {'pop_f_LSTM': {'1': 0.679, '0.5': 0.658, '0.25': 0.661, '0.125': 0.655, '0.0625': 0.613,
                                    '0.03125': 0.534, '0.333': 0.674, '0.111': 0.637, '0.037': 0.571}}
 
 #############################################################################################################################
 
-NS3_PEG_whole_av = {'pop_f_LSTM': {'1': 0.569, '0.5': 0.553, '0.25': 0.540, '0.125': 0.518, '0.0625': 0.476,
+NAT4_PEG_whole_av = {'pop_f_LSTM': {'1': 0.569, '0.5': 0.553, '0.25': 0.540, '0.125': 0.518, '0.0625': 0.476,
                                       '0.03125': 0.338, '0.333': 0.531, '0.111': 0.508, '0.037': 0.391}}
 
-NS3_PEG_whole_med = {'pop_f_LSTM': {'1': 0.591, '0.5': 0.554, '0.25': 0.563, '0.125': 0.527, '0.0625': 0.497,
+NAT4_PEG_whole_med = {'pop_f_LSTM': {'1': 0.591, '0.5': 0.554, '0.25': 0.563, '0.125': 0.527, '0.0625': 0.497,
                                        '0.03125': 0.321, '0.333': 0.549, '0.111': 0.504, '0.037': 0.405}}
 
 #############################################################################################################################
@@ -29,17 +29,17 @@ NS2_whole_med = {'pop_f_LSTM': {'1': 0.665, '0.5': 0.668, '0.25': 0.659, '0.125'
 
 #############################################################################################################################
 
-datasets = ['NS3', 'NS3_PEG', 'NS2']
+datasets = ['NAT4_A1', 'NAT4_PEG', 'NS2']
 all_results = dict((d_ID, 0) for d_ID in datasets)
 
 for d_ID in datasets:
-    if d_ID == 'NS3':
-        all_results[d_ID] = {'av': NS3_whole_av, 
-                             'med': NS3_whole_med}
+    if d_ID == 'NAT4_A1':
+        all_results[d_ID] = {'av': NAT4_A1_whole_av, 
+                             'med': NAT4_A1_whole_med}
         
-    if d_ID == 'NS3_PEG':
-        all_results[d_ID] = {'av': NS3_PEG_whole_av, 
-                             'med': NS3_PEG_whole_med}
+    if d_ID == 'NAT4_PEG':
+        all_results[d_ID] = {'av': NAT4_PEG_whole_av, 
+                             'med': NAT4_PEG_whole_med}
         
     if d_ID == 'NS2':
         all_results[d_ID] = {'av': NS2_whole_av, 
@@ -49,8 +49,8 @@ for d_ID in datasets:
 
 dataset_colours = dict.fromkeys(datasets)
 dataset_colours['NS2'] = 'k'
-dataset_colours['NS3'] = '#C20078'
-dataset_colours['NS3_PEG'] = '#15B01A'
+dataset_colours['NAT4_A1'] = '#C20078'
+dataset_colours['NAT4_PEG'] = '#15B01A'
 
 model_markers = {'pop_f_LSTM': 'o'}
 
@@ -70,8 +70,8 @@ def power_func(x, a, b, c):
 
 fig, axs = plt.subplots()
 
-#datasets = ['NS3', 'NS3_PEG']
-datasets = ['NS3', 'NS3_PEG', 'NS2']
+#datasets = ['NAT4_A1', 'NAT4_PEG']
+datasets = ['NAT4_A1', 'NAT4_PEG', 'NS2']
 
 for d_ID in datasets:
     d_ID_results = all_results[d_ID]
@@ -83,7 +83,7 @@ for d_ID in datasets:
                     results = d_ID_results[key][key_1]
                     keys_nums = []
                     for key_2 in results.keys():
-                        if d_ID == 'NS3' or d_ID == 'NS3_PEG':
+                        if d_ID == 'NAT4_A1' or d_ID == 'NAT4_PEG':
                             keys_nums.append(1/(1/float(key_2))*1000)
                         else:
                             keys_nums.append(4/(1/float(key_2))*1000)

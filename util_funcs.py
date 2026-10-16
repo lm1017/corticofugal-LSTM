@@ -85,11 +85,10 @@ def train_val_test_split(dataset, reduced, stim_dataset):
     stimuli : dictionary containing all (4) sets together
     
     Split of dataset into a test set and a training set; training set is also split into a training set and a validation set, 
-    with the number of folds specified by n_folds and without repetition. Test sets for NS1 and NS2 correspond to those used
-    in Rahman et al., 2020
+    with the number of folds specified by n_folds and without repetition.
     '''
         
-    if dataset == 'NS2_include_single' or dataset == 'NS3':
+    if dataset == 'NS2' or dataset == 'NAT4_A1':
         folds = 7
         test_stimuli = [2, 8, 11, 14]
         cv_stimuli = [0, 1, 3, 4, 5, 6, 7, 9, 10, 12, 13, 15, 16, 17]
@@ -106,7 +105,7 @@ def train_val_test_split(dataset, reduced, stim_dataset):
         stimuli = {'training_stimuli' : training_stimuli, 'validation_stimuli' : validation_stimuli,
                    'cv_stimuli' : cv_stimuli, 'test_stimuli' : test_stimuli}
         
-    elif dataset == 'NS3_PEG':
+    elif dataset == 'NAT4_PEG':
         folds = 7
         test_stimuli = [8, 14, 10, 17]
         cv_stimuli = [1, 4, 16, 12, 15, 7, 11, 3, 5, 6, 9, 13, 2, 0]
@@ -1241,7 +1240,7 @@ def build_grid_NS1_NS2(neuron_data_list, stimuli_cochleagrams, stimuli, his_step
 
 #############################################################################################################################
 
-def build_grid_NS2_include_single_NS3_concat(single_rep_cochleagrams, multi_rep_cochleagrams, n_neurons, resp_dataset, 
+def build_grid_concat(single_rep_cochleagrams, multi_rep_cochleagrams, n_neurons, resp_dataset, 
                                              stimuli, params, norm, mean_cv, std_cv, clip_bins, shift_bins, type_data, 
                                              zero_padding, padding_bins, t_axis):
     '''

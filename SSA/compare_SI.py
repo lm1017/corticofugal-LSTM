@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 from matplotlib.cbook import boxplot_stats
 from SSA_utils import pitman_morgan_test, ula_stats
 
-dataset_ID = 'NS2_include_single'
-models = ['pop_t_subLSTM', 'twoD_CNN']
+dataset_ID = 'NS2'
+models = ['pop_f_LSTM', 'twoD_CNN']
 
 protocol = 'oddball'
 start = 'sound'
@@ -22,8 +22,8 @@ plot_all_conds = False
 plot_by_sess = True
 plot_violin = True
 
-best_lambs = {'NS3': {'pop_t_subLSTM': 15, 'twoD_CNN': 15}, 'NS3_PEG': {'pop_t_subLSTM': 14, 'oneD_CNN': 16}, 
-              'NS2_include_single': {'pop_t_subLSTM': 14, 'twoD_CNN': 15}}
+best_lambs = {'NAT4_A1': {'pop_f_LSTM': 15, 'twoD_CNN': 15}, 'NAT4_PEG': {'pop_f_LSTM': 14, 'oneD_CNN': 16}, 
+              'NS2': {'pop_f_LSTM': 14, 'twoD_CNN': 15}}
 
 models_SI = {}
 
@@ -38,7 +38,7 @@ for model_ID in models:
     models_SI[model_ID] = best_lamb_SI
     
 if protocol == 'oddball':
-    for cond in models_SI['pop_t_subLSTM']:
+    for cond in models_SI['pop_f_LSTM']:
         if plot_all_conds:
             f, ax = plt.subplots()
             ax.scatter(models_SI[models[1]][cond], models_SI[models[0]][cond])

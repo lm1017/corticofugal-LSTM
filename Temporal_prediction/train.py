@@ -85,7 +85,7 @@ else:
             
         
         # 'log' indicates log spacing of frequency channels
-        X_ft, params = cochleagram(y, fs, bin_size, 'NS3', False, 0, spacing='log', freq_info=[min_F, max_F, n_F])
+        X_ft, params = cochleagram(y, fs, bin_size, 'NAT4_A1', False, 0, spacing='log', freq_info=[min_F, max_F, n_F])
         t = params['spectrogram_t']
         
         #plot_stimuli(y, fs, X_ft, bin_size, n_F, min_F, max_F)

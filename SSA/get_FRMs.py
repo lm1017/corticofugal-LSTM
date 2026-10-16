@@ -11,7 +11,7 @@ import all_models
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-dataset_ID = 'NS3_PEG'
+dataset_ID = 'NAT4_PEG'
 model_ID = 'pop_f_LSTM'
 
 separate_silence = False

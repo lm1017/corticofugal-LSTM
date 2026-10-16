@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 
-datasets = ['NS3_PEG']
+datasets = ['NAT4_PEG']
 model_ID = 'pop_f_LSTM'
 
 min_F = 500

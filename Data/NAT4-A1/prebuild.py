@@ -108,11 +108,11 @@ for session in sessions:
         neuron_spikes.append(stim_spikes)
     all_sess_resps.append(neuron_spikes)
         
-NS3_prebuild = {'unique_stim_list': unique_stim_list, 'unique_stim_occ': unique_stim_occ, 'sessions': sessions, 
+NAT4_A1_prebuild = {'unique_stim_list': unique_stim_list, 'unique_stim_occ': unique_stim_occ, 'sessions': sessions, 
                 'unique_stim_num': unique_stim_num, 'neuron_IDs': neuron_IDs, 'all_sess_resps': all_sess_resps, 
                 'stim_IDs': stim_IDs}
 
 # save pre-built dataset file
-'''f = open('NS3_prebuild.pckl', 'wb')
-pickle.dump(NS3_prebuild, f)
+'''f = open('NAT4_A1_prebuild.pckl', 'wb')
+pickle.dump(NAT4_A1_prebuild, f)
 f.close()'''

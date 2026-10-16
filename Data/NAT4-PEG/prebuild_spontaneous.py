@@ -1,4 +1,3 @@
-
 import os
 import csv
 import json
@@ -88,7 +87,7 @@ for session in sessions:
     for key, dataset in data_in.items():
         # response file contains spike times (in seconds) for each neuron over the whole session
         data_dict[key] = np.array(dataset[:])
-    
+
     neuron_spikes = []
     for nID in data_nID['chans']: # loop over neurons in session
         print(nID)
@@ -106,10 +105,10 @@ for session in sessions:
         neuron_spikes.append(stim_spikes)
     all_sess_resps.append(neuron_spikes)
 
-NS3_prebuild_spontaneous = {'sessions': sessions, 'neuron_IDs': neuron_IDs, 'all_sess_resps': all_sess_resps, 
-                            'silence_times': spont_times}
+NAT4_PEG_prebuild_spontaneous = {'sessions': sessions, 'neuron_IDs': neuron_IDs, 'all_sess_resps': all_sess_resps, 
+                                'silence_times': spont_times}
 
 # save pre-built dataset file
-'''f = open('NS3_prebuild_spontaneous.pckl', 'wb')
-pickle.dump(NS3_prebuild_spontaneous, f)
+'''f = open('NAT4_PEG_prebuild_spontaneous.pckl', 'wb')
+pickle.dump(NAT4_PEG_prebuild_spontaneous, f)
 f.close()'''

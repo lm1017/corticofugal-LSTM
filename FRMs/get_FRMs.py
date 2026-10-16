@@ -11,7 +11,7 @@ import all_models
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-dataset_ID = 'NS2_include_single'
+dataset_ID = 'NS2'
 model_ID = 'pop_f_LSTM'
 
 separate_silence = False

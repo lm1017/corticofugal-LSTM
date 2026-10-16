@@ -7,7 +7,7 @@ import scipy
 import matplotlib
 import matplotlib.pyplot as plt
 
-from util_funcs import train_val_test_split, build_grid_NS2_include_single_NS3_concat
+from util_funcs import train_val_test_split, build_grid_concat
 
 from analysis_funcs import any_CC_norms, multi_analysis_scatter, multi_analysis_stim_only, count_params, \
     compare_lowpass_LN, HU_tonotopy_FRMs, depth_sw_stats, param_match_compare, count_rcLSTM_params, t_corr_stim_resp
@@ -18,7 +18,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 test_set_type = 'Val_+_test'
 
-datasets = ['NS3_PEG']
+datasets = ['NAT4_PEG']
 
 models = ['pop_LN', 'pop_NRF', 'pop_RNN', 'pop_MGU', 'pop_GRU', 'pop_LSTM', 'pop_subLSTM', 'pop_f_LSTM', 'pop_rc_LSTM', 
           'oneD_CNN', 'oneD_x2_CNN', 'twoD_CNN']
@@ -170,11 +170,11 @@ for dataset_ID in datasets:
         folds, test_stimuli, cv_stimuli, validation_stimuli, training_stimuli, stimuli = \
             train_val_test_split(dataset_ID, reduced, single_rep_cochleagrams)
         
-        if dataset_ID == 'NS2_include_single' or dataset_ID == 'NS3':
+        if dataset_ID == 'NS2' or dataset_ID == 'NAT4_A1':
             folds = 1
             stimuli['validation_stimuli'] = [[6, 3, 13, 7, 17, 9, 5]]
             stimuli['training_stimuli'] = [[0, 1, 4, 16, 10, 12, 15] + list(range(np.size(single_rep_cochleagrams, 2)))]
-        elif dataset_ID == 'NS3_PEG':
+        elif dataset_ID == 'NAT4_PEG':
             folds = 1
             stimuli['validation_stimuli'] = [[7, 16, 9, 11, 0, 3, 15]]
             stimuli['training_stimuli'] = [[1, 4, 12, 2, 5, 6, 13] + list(range(np.size(single_rep_cochleagrams, 2)))]
@@ -200,7 +200,7 @@ for dataset_ID in datasets:
         # responses (PSTHs), multi-repeat spike times, single-repeat spike times
         train_stim_dataset, train_resp_dataset, val_stim_dataset, val_resp_dataset, cv_stim_dataset, \
             cv_resp_dataset, test_stim_dataset, test_resp_dataset, multi_rep_resps, single_rep_resps = \
-                build_grid_NS2_include_single_NS3_concat(single_rep_cochleagrams, multi_rep_cochleagrams, 
+                build_grid_concat(single_rep_cochleagrams, multi_rep_cochleagrams, 
                                                          n_neurons, resp_dataset, stimuli, params, norm, mean_cv, 
                                                          std_cv, clip_bins, shift_bins, type_data, zero_padding, 
                                                          padding_bins, t_axis)
@@ -234,9 +234,9 @@ for dataset_ID in datasets:
         resp_size = int(test_resp_dataset.size(-1)/len(stimuli['test_stimuli'][0]))
         all_stim_dataset = torch.cat((test_stim_dataset, train_stim_dataset), dim=3)
         all_resp_dataset = torch.cat((test_resp_dataset, train_resp_dataset), dim=2)
-        if dataset_ID == 'NS3' or dataset_ID == 'NS3_PEG':
+        if dataset_ID == 'NAT4_A1' or dataset_ID == 'NAT4_PEG':
             all_stimuli = [stimuli['test_stimuli'][0] + stimuli['training_stimuli'][0][:7] + list(np.arange(18, 591))]
-        if dataset_ID == 'NS2_include_single':
+        if dataset_ID == 'NS2':
             all_stimuli = [stimuli['test_stimuli'][0] + stimuli['training_stimuli'][0][:7] + list(np.arange(18, 299))]
         stim_dataset = np.concatenate((multi_rep_cochleagrams, single_rep_cochleagrams), axis=2)
         full_resp_dataset = []
@@ -251,9 +251,9 @@ for dataset_ID in datasets:
         # get parameter counts for each model
         '''models_param_count[model_ID] = count_params(models_fits_dict[model_ID])
         # stats comparing f-LSTM to parameter-matched CNNs
-        if model_ID == 'pop_f_LSTM' or (model_ID == 'twoD_CNN' and dataset_ID == 'NS3') or \
-            (model_ID == 'oneD_CNN' and dataset_ID == 'NS3_PEG') or \
-                (model_ID == 'twoD_CNN' and dataset_ID == 'NS2_include_single'): 
+        if model_ID == 'pop_f_LSTM' or (model_ID == 'twoD_CNN' and dataset_ID == 'NAT4_A1') or \
+            (model_ID == 'oneD_CNN' and dataset_ID == 'NAT4_PEG') or \
+                (model_ID == 'twoD_CNN' and dataset_ID == 'NS2'): 
                     pm_ttest, pm_ranktest, pm_results, pm_num = param_match_compare(models_results_dict, model_ID, 
                                                                                     dataset_ID, nr_dict)'''
         
@@ -310,7 +310,7 @@ for dataset_ID in datasets:
     '''models_results_dict.update(pm_results)
     models_param_count.update(pm_num)
     param_count[dataset_ID] = models_param_count
-    if dataset_ID == 'NS3' or dataset_ID == 'NS2_include_single':
+    if dataset_ID == 'NAT4_A1' or dataset_ID == 'NS2':
         rc_LSTM_param_count, rc_LSTM_performance = count_rcLSTM_params(dataset_ID)
     else:
         rc_LSTM_param_count = []
