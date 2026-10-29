@@ -2904,16 +2904,25 @@ def t_corr_stim_resp(n_neurons, stim_dataset, resp_dataset, models_fits_dict, mo
                                         max_gate = np.nanmax(gate_traces[f_chan, h_step])
                                         min_gate = np.nanmin(gate_traces[f_chan, h_step])
                                         
-                                        if max_gate < 0.2: # old results using 0.1
-                                            small_ctr += 1
-                                            f_chan_corr[f_chan] = np.nan
-                                        elif min_gate > 0.8: # old results using 0.9
-                                            large_ctr += 1
-                                            f_chan_corr[f_chan] = 1.5
-                                        elif (max_gate - min_gate) < 0.1: # old results using 0.1
-                                            import pdb
-                                            pdb.set_trace()
-                                            all_ctr += 1
+                                        if (dataset_ID == 'NS3') or (dataset_ID == 'NS3_PEG'):
+                                            if (max_gate - min_gate) < 0.1:
+                                                all_ctr+=1
+                                                if max_gate < 0.1:
+                                                    small_ctr += 1
+                                                    f_chan_corr[f_chan] = np.nan
+                                                elif max_gate > 0.9:
+                                                    large_ctr += 1
+                                                    f_chan_corr[f_chan] = 1.5
+                                        
+                                        elif dataset_ID == 'NS2_include_single':
+                                            if max_gate < 0.1: # old results using 0.1
+                                                small_ctr += 1
+                                                f_chan_corr[f_chan] = np.nan
+                                            elif min_gate > 0.9: # old results using 0.9
+                                                large_ctr += 1
+                                                f_chan_corr[f_chan] = 1.5
+                                            elif (max_gate - min_gate) < 0.1: # old results using 0.1
+                                                all_ctr += 1
                                 
                                 stim_corr[h_step] = np.mean(f_chan_corr)
                                 all_stim_corr[h_step] = f_chan_corr
